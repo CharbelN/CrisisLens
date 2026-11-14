@@ -94,3 +94,15 @@ def test_text_amount_rejected():
     df.iloc[0, 1] = "lots"
     with pytest.raises(ValueError):
         ui.parse_portfolio(df)
+
+
+def test_llm_down_uses_strong_twins():
+    from riskdesk.retrieval.index import Twin
+
+    class OneTwin:
+        def search(self, text):
+            return [Twin("E1", "Oil shock", "2020-01-01", "d", "market", 0.9, {d: 0.0 for d in DRIVER_IDS} | {"equity": -10.0})]
+
+    res = run_forward(PORTFOLIO, "Oil up", FakeClient(error=LLMUnavailableError("down")), LIMITS, CHANGES, OneTwin())
+    assert res.status == "fallback" and res.stress.pnl == pytest.approx(-1000)
+    assert ui.twins_table(res).iloc[0]["Used by AI"] == "yes"

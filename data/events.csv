@@ -1,0 +1,124 @@
+id,name,date,description,risk_type,region,checked
+E001,London transport bombings,2005-07-07,"Coordinated terrorist bombs hit the London Underground and a bus during rush hour, killing 52 people and briefly shaking European markets and sterling.",operational,UK,no
+E002,Hurricane Katrina,2005-08-29,"Hurricane Katrina makes landfall near New Orleans, shutting most US Gulf of Mexico oil production and many refineries and pushing fuel prices to record highs.",operational,US,no
+E003,May 2006 emerging market selloff,2006-05-11,"Inflation fears and further Federal Reserve rate hikes trigger a sharp global selloff in emerging market stocks, commodities and other risky assets.",market,Global,no
+E004,Israel-Lebanon war 2006,2006-07-12,"War breaks out between Israel and Hezbollah in Lebanon, raising fears of wider Middle East conflict and pushing oil prices to new highs.",market,Middle East,no
+E005,Shanghai stock crash 2007,2007-02-27,"Chinese stocks fall about 9% in one day on fears of a government crackdown on speculation, setting off a global stock market sell-off.",market,China,no
+E006,BNP Paribas freezes funds,2007-08-09,"BNP Paribas freezes three investment funds exposed to US subprime mortgages, saying it cannot value them; interbank lending markets seize up and the ECB injects emergency cash.",liquidity,Europe,no
+E007,Northern Rock bank run,2007-09-14,"British mortgage lender Northern Rock asks the Bank of England for emergency funding, triggering the first run on a UK bank in over a century.",liquidity,UK,no
+E008,Fed first cut of the 2007 crisis,2007-09-18,"The Federal Reserve cuts interest rates by half a percentage point, more than expected, to contain damage from the subprime mortgage crisis.",market,US,no
+E009,Fed emergency cut January 2008,2008-01-22,"After a global stock rout, the Federal Reserve makes an emergency three-quarter-point rate cut between meetings, its largest single cut in decades.",market,US,no
+E010,Bear Stearns rescue,2008-03-17,"Investment bank Bear Stearns, hit by mortgage losses and a run by its lenders, is sold to JPMorgan for a fraction of its value with Federal Reserve support.",credit,US,no
+E011,Oil peaks near $147,2008-07-11,"Oil prices hit a record near $147 a barrel on strong demand and tight supply, squeezing consumers and raising inflation fears worldwide.",market,Global,no
+E012,Fannie Mae and Freddie Mac takeover,2008-09-08,"The US government places mortgage giants Fannie Mae and Freddie Mac into conservatorship, taking control of firms backing about half of US home loans.",credit,US,no
+E013,Lehman Brothers bankruptcy,2008-09-15,"Lehman Brothers files for the largest bankruptcy in US history after no rescue is found; Merrill Lynch is sold and insurer AIG needs a government bailout days later.",credit,US,no
+E014,House rejects TARP bailout,2008-09-29,"The US House of Representatives votes down the $700 billion bank rescue plan, and stocks suffer one of their largest one-day falls in history.",market,US,no
+E015,Coordinated global rate cuts,2008-10-08,"The Federal Reserve, ECB, Bank of England and other central banks make an unprecedented joint emergency interest rate cut as the financial crisis deepens.",market,Global,no
+E016,Fed launches QE1,2008-11-25,"The Federal Reserve announces it will buy hundreds of billions of dollars of mortgage-backed securities and agency debt, the start of quantitative easing.",market,US,no
+E017,Fed cuts rates to zero,2008-12-16,"The Federal Reserve cuts its policy rate to a range of zero to 0.25% and promises to use all tools to support the economy.",market,US,no
+E018,March 2009 market bottom,2009-03-10,"After months of bank failures and recession, Citigroup says it was profitable early in the year, sparking a powerful rally from the lows of the financial crisis.",market,US,no
+E019,Fed buys Treasuries in QE1,2009-03-18,"The Federal Reserve expands quantitative easing and says it will buy up to $300 billion of long-term US government bonds, sending yields sharply lower.",market,US,no
+E020,US bank stress test results,2009-05-07,"US regulators publish stress test results for the 19 largest banks, showing manageable capital needs and restoring confidence in the banking system.",credit,US,no
+E021,Greece downgraded to junk,2010-04-27,"Standard & Poor's cuts Greece's credit rating to junk and downgrades Portugal, intensifying fears of a European sovereign debt crisis.",credit,Europe,no
+E022,Flash Crash,2010-05-06,"US stocks plunge nearly 10% within minutes before recovering, as automated trading and a large sell order cause a sudden collapse in market liquidity.",operational,US,no
+E023,EU-IMF euro rescue fund,2010-05-10,"European leaders and the IMF agree a rescue package of about 750 billion euros and the ECB starts buying government bonds to stop the euro debt crisis spreading.",credit,Europe,no
+E024,Fed announces QE2,2010-11-03,"The Federal Reserve announces a second round of quantitative easing, buying $600 billion of US government bonds to support a weak recovery.",market,US,no
+E025,Ireland requests bailout,2010-11-22,"Ireland asks the European Union and IMF for a bailout after losses at its banks overwhelm the government's finances.",credit,Europe,no
+E026,Egypt revolution,2011-01-28,"Mass protests spread across Egypt in the Arab Spring, raising fears for the Suez Canal and Middle East oil supplies.",market,Middle East,no
+E027,Libya civil war cuts oil,2011-02-21,"Civil war in Libya halts most of the country's oil exports, pushing oil prices sharply higher.",market,Middle East,no
+E028,Japan earthquake and Fukushima,2011-03-11,"A massive earthquake and tsunami hit Japan, causing a nuclear disaster at Fukushima and disrupting global supply chains.",operational,Japan,no
+E029,Commodity crash May 2011,2011-05-05,"Commodity prices collapse, with oil falling about 10% in a day and silver crashing, as speculators exit crowded positions.",market,Global,no
+E030,IEA emergency oil release,2011-06-23,"The International Energy Agency announces a coordinated release of emergency oil stocks to offset lost Libyan supply.",market,Global,no
+E031,US credit rating downgrade,2011-08-08,"Standard & Poor's strips the United States of its top AAA credit rating after a bitter debt ceiling fight, and global stocks plunge as investors seek safety.",credit,US,no
+E032,Fed Operation Twist,2011-09-21,"The Federal Reserve announces Operation Twist, selling short-term bonds to buy long-term ones, and warns of significant downside risks to the economy.",market,US,no
+E033,Central banks cut dollar funding cost,2011-11-30,"Major central banks jointly make US dollar loans cheaper for banks to ease funding stress caused by the euro crisis.",liquidity,Global,no
+E034,Greek debt restructuring,2012-03-09,"Greece completes the largest sovereign debt restructuring in history, with private bondholders accepting large losses.",credit,Europe,no
+E035,Spain bank bailout request,2012-06-11,"Spain requests up to 100 billion euros of European aid to recapitalise its banks hit by a property crash.",credit,Europe,no
+E036,Draghi whatever it takes,2012-07-26,"ECB President Mario Draghi pledges to do whatever it takes to preserve the euro, calming the European debt crisis.",credit,Europe,no
+E037,Fed launches QE3,2012-09-13,"The Federal Reserve launches open-ended bond purchases of $40 billion a month until the job market improves substantially.",market,US,no
+E038,US fiscal cliff deal,2013-01-02,"US lawmakers pass a last-minute deal avoiding automatic tax rises and spending cuts known as the fiscal cliff.",market,US,no
+E039,Cyprus deposit levy,2013-03-18,"Cyprus's bailout plan proposes a levy on bank deposits; banks close and capital controls follow, shaking confidence in euro area deposits.",credit,Europe,no
+E040,Gold crash April 2013,2013-04-12,"Gold suffers its biggest two-day fall in decades as investors abandon it on hopes of recovery and fears of central bank sales.",market,Global,no
+E041,Taper tantrum,2013-05-22,"Fed Chair Ben Bernanke says bond purchases could be slowed, triggering a sharp rise in bond yields and emerging market selling.",market,US,no
+E042,US government shutdown 2013,2013-10-01,"The US federal government shuts down for over two weeks in a budget fight, raising fears of a debt default.",market,US,no
+E043,Fed announces taper,2013-12-18,"The Federal Reserve announces it will start reducing its monthly bond purchases, ending the expansion of quantitative easing.",market,US,no
+E044,Mt. Gox collapse,2014-02-24,"Mt. Gox, then the largest bitcoin exchange, goes offline after losing hundreds of thousands of customers' bitcoins to theft.",operational,Crypto,no
+E045,Russia takes Crimea,2014-03-03,"Russian forces take control of Ukraine's Crimea peninsula, sparking the worst East-West crisis since the Cold War and the threat of sanctions.",market,Europe,no
+E046,OPEC refuses to cut output,2014-11-27,"OPEC decides not to cut production despite a glut, choosing to defend market share against US shale, and oil prices plunge.",market,Global,no
+E047,Swiss franc cap removed,2015-01-15,"The Swiss National Bank unexpectedly scraps its cap on the franc, which jumps about 30% in minutes, causing large losses at brokers.",market,Europe,no
+E048,ECB launches QE,2015-01-22,"The European Central Bank announces large-scale government bond purchases of 60 billion euros a month to fight deflation.",market,Europe,no
+E049,Greek capital controls,2015-06-29,"Greece closes its banks and imposes capital controls after talks with creditors collapse and a referendum on bailout terms is called.",credit,Europe,no
+E050,China devalues yuan,2015-08-11,"China unexpectedly devalues the yuan, raising fears of a sharper Chinese slowdown and a global currency war.",market,China,no
+E051,China Black Monday 2015,2015-08-24,"Chinese stocks crash and global markets plunge at the open, with the Dow briefly falling 1,000 points on fears about China's economy.",market,China,no
+E052,Fed first hike since 2006,2015-12-16,"The Federal Reserve raises interest rates for the first time in nearly a decade, ending the era of zero rates.",market,US,no
+E053,China circuit breaker turmoil,2016-01-04,"Chinese stocks trigger new circuit breakers and trading halts at the start of 2016, starting a global sell-off alongside falling oil.",market,China,no
+E054,Oil falls below $30,2016-01-20,"Oil falls to a 12-year low below $30 a barrel on a global glut and Iran's return to export markets after sanctions.",market,Global,no
+E055,Brexit vote,2016-06-24,"The United Kingdom votes to leave the European Union in a surprise referendum result; sterling crashes and global stocks fall.",market,UK,no
+E056,Bitfinex hack,2016-08-02,"Crypto exchange Bitfinex is hacked and about 120,000 bitcoins are stolen, halting trading and hitting bitcoin's price.",operational,Crypto,no
+E057,Trump wins 2016 election,2016-11-09,"Donald Trump wins the US presidency in a surprise result; investors bet on tax cuts and spending, lifting stocks, yields and the dollar.",market,US,no
+E058,OPEC agrees output cut 2016,2016-11-30,"OPEC agrees its first production cut since 2008, later joined by Russia, to support oil prices.",market,Global,no
+E059,North Korea fire and fury,2017-08-08,"Tensions with North Korea escalate as the US president threatens fire and fury, prompting a move into safe-haven assets.",market,Asia,no
+E060,China bans ICOs,2017-09-04,"China bans initial coin offerings and soon orders domestic crypto exchanges to close, hitting cryptocurrency prices.",operational,Crypto,no
+E061,Bitcoin bubble peak 2017,2017-12-18,"Bitcoin peaks near $20,000 as CME launches bitcoin futures at the height of a speculative mania, followed by a long crash.",market,Crypto,no
+E062,Volmageddon,2018-02-05,"US stocks drop sharply and volatility explodes as products betting on calm markets collapse, after strong wage data raises inflation fears.",market,US,no
+E063,US-China tariffs begin,2018-03-22,"The US announces tariffs on up to $60 billion of Chinese imports, starting a trade war with China.",market,Global,no
+E064,October 2018 rate scare,2018-10-10,"US stocks fall sharply as 10-year yields reach multi-year highs and the Fed signals continued tightening.",market,US,no
+E065,Crypto crash November 2018,2018-11-14,"Bitcoin breaks below $6,000 and crypto prices collapse during a dispute over the Bitcoin Cash hard fork.",market,Crypto,no
+E066,Fed hikes into selloff 2018,2018-12-19,"The Federal Reserve raises rates and signals more tightening despite falling markets, deepening a December stock market slide.",market,US,no
+E067,Powell pivot to patience,2019-01-04,"Fed Chair Jerome Powell says the Fed will be patient and flexible on rates, and stocks rally strongly.",market,US,no
+E068,Tariff escalation May 2019,2019-05-06,"The US president announces higher tariffs on $200 billion of Chinese goods, reigniting the trade war.",market,Global,no
+E069,Fed first cut since 2008,2019-07-31,"The Federal Reserve cuts rates for the first time since the financial crisis, citing trade tensions and weak global growth.",market,US,no
+E070,Yuan breaks 7 per dollar,2019-08-05,"China lets the yuan weaken past 7 per dollar and the US labels China a currency manipulator, escalating the trade war.",market,China,no
+E071,Abqaiq drone attack,2019-09-16,"Drone and missile attacks hit Saudi Arabia's Abqaiq oil processing plant, briefly knocking out about half of Saudi oil output.",operational,Middle East,no
+E072,US repo market spike,2019-09-17,"Overnight funding rates in the US repo market spike to 10%, forcing the Federal Reserve to inject cash for the first time in a decade.",liquidity,US,no
+E073,US kills Soleimani,2020-01-03,"A US strike kills Iranian general Qassem Soleimani, raising fears of war in the Middle East.",market,Middle East,no
+E074,Wuhan lockdown,2020-01-23,"China locks down the city of Wuhan and nearby cities, home to millions of people, to contain a new coronavirus outbreak.",operational,China,no
+E075,COVID spreads to Europe,2020-02-24,"Coronavirus cases surge in Italy and beyond, and global markets begin their fastest crash in history as a pandemic becomes likely.",market,Global,no
+E076,Fed emergency cut March 2020,2020-03-03,"The Federal Reserve makes an emergency half-point rate cut between meetings to counter the coronavirus.",market,US,no
+E077,Saudi-Russia oil price war,2020-03-09,"Saudi Arabia launches an oil price war after talks with Russia collapse, and oil prices crash about 25% in one day during the pandemic.",market,Global,no
+E078,Fed cuts to zero COVID,2020-03-16,"The Federal Reserve cuts rates to zero and restarts massive bond buying on a Sunday, but stocks still crash on pandemic lockdowns.",market,US,no
+E079,Fed unlimited QE,2020-03-23,"The Federal Reserve announces unlimited bond purchases and its first corporate bond buying programme, marking the bottom of the COVID crash.",liquidity,US,no
+E080,Oil goes negative,2020-04-20,"US oil futures fall below zero for the first time as storage fills up during pandemic lockdowns.",market,Global,no
+E081,COVID second wave fears,2020-06-11,"US stocks fall about 6% in one day on fears of a second coronavirus wave and a gloomy Federal Reserve outlook.",market,US,no
+E082,Fed average inflation targeting,2020-08-27,"The Federal Reserve adopts average inflation targeting, signalling it will keep rates low even if inflation runs above 2% for a while.",market,US,no
+E083,US election 2020,2020-11-04,"Joe Biden wins the US presidential election after a close count, removing a source of uncertainty for markets.",market,US,no
+E084,Pfizer vaccine breakthrough,2020-11-09,"Pfizer and BioNTech announce a coronavirus vaccine about 90% effective, sparking a huge rotation into economically sensitive stocks.",market,Global,no
+E085,GameStop short squeeze,2021-01-27,"Retail traders drive a massive short squeeze in GameStop and other stocks, forcing hedge funds to cover and brokers to restrict trading.",liquidity,US,no
+E086,Tesla buys bitcoin,2021-02-08,"Tesla discloses a $1.5 billion bitcoin purchase and plans to accept it as payment, boosting cryptocurrency prices.",market,Crypto,no
+E087,Archegos collapse,2021-03-29,"Family office Archegos Capital defaults on margin calls, forcing banks into fire sales and causing billions in losses at Credit Suisse and Nomura.",credit,US,no
+E088,Crypto crash May 2021,2021-05-19,"Cryptocurrencies crash as China warns against crypto use and Tesla stops accepting bitcoin over energy concerns.",market,Crypto,no
+E089,Evergrande default fears,2021-09-20,"Fears that heavily indebted Chinese property developer Evergrande will default trigger a global stock sell-off.",credit,China,no
+E090,US inflation hits 6.2%,2021-11-10,"US consumer prices rise 6.2% from a year earlier, the fastest in three decades, raising pressure on the Fed to tighten.",market,US,no
+E091,Omicron variant,2021-11-26,"A new heavily mutated coronavirus variant, Omicron, is identified, and markets fall sharply on fears of new lockdowns.",market,Global,no
+E092,Fed signals balance sheet runoff,2022-01-05,"Federal Reserve minutes show officials want to raise rates sooner and shrink the balance sheet, triggering a sell-off in growth stocks.",market,US,no
+E093,Russia invades Ukraine,2022-02-24,"Russia launches a full-scale invasion of Ukraine; Western sanctions follow and energy and food prices surge.",market,Europe,no
+E094,Fed first hike 2022,2022-03-16,"The Federal Reserve raises rates for the first time since 2018 and signals a series of hikes to fight high inflation.",market,US,no
+E095,Terra Luna collapse,2022-05-09,"The TerraUSD stablecoin loses its dollar peg and its sister token Luna collapses to almost zero, wiping out about $40 billion.",credit,Crypto,no
+E096,Celsius freezes withdrawals,2022-06-13,"Crypto lender Celsius freezes customer withdrawals, deepening a crypto crash as hot US inflation data hits markets.",liquidity,Crypto,no
+E097,Fed 75bp hike,2022-06-15,"The Federal Reserve raises rates by three-quarters of a point, its biggest hike since 1994, to fight 40-year-high inflation.",market,US,no
+E098,Powell Jackson Hole 2022,2022-08-26,"Fed Chair Powell warns that fighting inflation will bring pain to households and businesses, ending a summer stock rally.",market,US,no
+E099,UK mini-budget gilt crisis,2022-09-23,"The UK government announces large unfunded tax cuts; gilt yields spike, sterling crashes and pension funds face margin calls until the Bank of England intervenes.",liquidity,UK,no
+E100,FTX collapse,2022-11-08,"Crypto exchange FTX halts withdrawals after a run by customers and files for bankruptcy, revealing misuse of client funds.",operational,Crypto,no
+E101,US inflation cools November 2022,2022-11-10,"US inflation comes in lower than expected, and stocks surge over 5% in a day on hopes the Fed will slow its rate hikes.",market,US,no
+E102,Silicon Valley Bank failure,2023-03-10,"Silicon Valley Bank collapses after a deposit run triggered by bond losses, the largest US bank failure since 2008; Signature Bank follows.",liquidity,US,no
+E103,Credit Suisse rescue,2023-03-20,"Swiss authorities force UBS to take over Credit Suisse in an emergency deal, wiping out some of its bonds.",credit,Europe,no
+E104,First Republic seized,2023-05-01,"First Republic Bank is seized by regulators and sold to JPMorgan, the second-largest bank failure in US history.",credit,US,no
+E105,US debt ceiling deal 2023,2023-05-30,"US leaders agree a deal to suspend the debt ceiling, averting a possible default by the Treasury.",credit,US,no
+E106,Fitch downgrades US,2023-08-01,"Fitch Ratings cuts the US credit rating from AAA to AA+, citing fiscal deterioration and repeated debt limit standoffs.",credit,US,no
+E107,Hamas attack on Israel,2023-10-09,"Hamas launches a surprise attack on Israel, which declares war, raising fears of a wider Middle East conflict.",market,Middle East,no
+E108,10-year yield nears 5%,2023-10-19,"The US 10-year Treasury yield approaches 5%, its highest since 2007, as markets price higher-for-longer rates and large deficits.",market,US,no
+E109,Fed pivot December 2023,2023-12-13,"The Federal Reserve signals it expects to cut rates in the coming year, sparking a rally in bonds and stocks.",market,US,no
+E110,Spot bitcoin ETFs approved,2024-01-10,"The US SEC approves the first spot bitcoin exchange-traded funds, opening bitcoin to mainstream investors.",market,Crypto,no
+E111,BOJ ends negative rates,2024-03-19,"The Bank of Japan raises rates for the first time in 17 years, ending the world's last negative interest rate policy.",market,Japan,no
+E112,Iran attacks Israel 2024,2024-04-15,"Iran launches hundreds of drones and missiles at Israel in its first direct attack, raising fears of regional war.",market,Middle East,no
+E113,CrowdStrike outage,2024-07-19,"A faulty CrowdStrike software update crashes millions of Windows computers, grounding flights and disrupting banks and hospitals worldwide.",operational,Global,no
+E114,Yen carry trade unwind,2024-08-05,"Japanese stocks crash 12% in a day as a Bank of Japan hike and weak US jobs data force investors to unwind yen-funded trades.",liquidity,Global,no
+E115,Fed 50bp cut 2024,2024-09-18,"The Federal Reserve starts cutting rates with a half-point reduction as inflation cools and the job market softens.",market,US,no
+E116,Trump wins 2024 election,2024-11-06,"Donald Trump wins the 2024 US election; markets price tax cuts, tariffs and deregulation, lifting stocks, the dollar and bitcoin.",market,US,no
+E117,DeepSeek AI shock,2025-01-27,"Chinese startup DeepSeek releases a cheap high-performing AI model, and US AI and chip stocks plunge, with Nvidia losing about $600 billion in value.",market,US,no
+E118,Bybit hack,2025-02-21,"Crypto exchange Bybit loses about $1.5 billion of ether in the largest crypto theft ever, attributed to North Korean hackers.",operational,Crypto,no
+E119,Liberation Day tariffs,2025-04-03,"The US announces sweeping tariffs on almost all trading partners, far larger than expected, and global stocks crash with US bonds and the dollar also falling.",market,Global,no
+E120,Tariff pause rally,2025-04-09,"The US pauses most new tariffs for 90 days, and US stocks jump about 9.5% in one of their best days ever.",market,US,no
+E121,Israel strikes Iran,2025-06-13,"Israel launches large air strikes on Iran's nuclear and military sites, and oil prices jump on fears for Gulf supply.",market,Middle East,no
+E122,US strikes Iran nuclear sites,2025-06-23,"The United States bombs Iranian nuclear facilities; Iran's limited response and a quick ceasefire send oil prices back down.",market,Middle East,no
+E123,October 2025 crypto liquidation,2025-10-10,"A threat of 100% US tariffs on China triggers a sell-off and the largest liquidation of leveraged crypto positions on record.",liquidity,Crypto,no

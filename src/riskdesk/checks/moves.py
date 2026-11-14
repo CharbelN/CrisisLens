@@ -59,8 +59,14 @@ class CheckResult:
     errors: list[str]
 
 
-def check_translation(raw_text: str, limits: dict[str, Limits]) -> CheckResult:
-    """Read the model's answer and list every problem in plain words."""
+def check_translation(
+    raw_text: str, limits: dict[str, Limits], allowed_events: set[str] | None = None
+) -> CheckResult:
+    """Read the model's answer and list every problem in plain words.
+
+    `allowed_events`: ids of the retrieved past events. If given, every id in
+    "events_used" must be one of them (the model may only cite evidence it was shown).
+    """
     errors: list[str] = []
     try:
         data = json.loads(raw_text)
@@ -104,7 +110,14 @@ def check_translation(raw_text: str, limits: dict[str, Limits]) -> CheckResult:
     reasoning = data.get("reasoning", "")
     events = data.get("events_used", [])
     reasoning = reasoning if isinstance(reasoning, str) else str(reasoning)
-    events = [str(e) for e in events] if isinstance(events, list) else []
+    if not isinstance(events, list):
+        errors.append('"events_used" must be a list of event ids.')
+        events = []
+    events = [str(e) for e in events]
+    if allowed_events is not None:
+        bad = [e for e in events if e not in allowed_events]
+        if bad:
+            errors.append(f"events_used contains ids that were not given as evidence: {bad}. Use only {sorted(allowed_events)}.")
 
     if errors:
         return CheckResult(False, None, reasoning, events, errors)

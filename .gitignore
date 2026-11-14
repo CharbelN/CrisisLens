@@ -20,3 +20,6 @@ cache/dev/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Downloaded embedding model
+.cache/

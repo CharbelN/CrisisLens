@@ -1,6 +1,7 @@
 """Run the scenario translator on eval/scenarios.csv: the "before RAG" baseline.
 
-Usage:  uv run python eval/run_translator.py [--out NAME]
+Usage:  uv run python eval/run_translator.py          (before RAG: no evidence)
+        uv run python eval/run_translator.py --rag    (with historical twins as evidence)
 
 Expected directions in scenarios.csv: "+" up, "-" down, "0" roughly flat, "?" not scored.
 "Roughly flat" means within 2% for prices and within 15 bp for the yield.
@@ -30,8 +31,15 @@ def direction(driver: str, move: float) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="translator_before_rag")
+    parser.add_argument("--rag", action="store_true", help="give the model the retrieved past events")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args()
+    out_name = args.out or ("translator_with_rag" if args.rag else "translator_before_rag")
+    retriever = None
+    if args.rag:
+        from riskdesk.retrieval.index import Retriever
+
+        retriever = Retriever.load()
 
     scenarios = pd.read_csv(EVAL_DIR / "scenarios.csv", dtype=str, keep_default_na=False)
     limits = default_limits()
@@ -41,7 +49,8 @@ def main() -> None:
     for _, sc in scenarios.iterrows():
         row = {"id": sc["id"], "scenario": sc["scenario"]}
         try:
-            res = translate(sc["scenario"], client, limits)
+            twins = retriever.search(sc["scenario"]) if retriever else None
+            res = translate(sc["scenario"], client, limits, twins)
         except LLMUnavailableError as exc:
             print(f"{sc['id']}: LLM unavailable: {exc}")
             row.update(status="unavailable")
@@ -60,13 +69,14 @@ def main() -> None:
                 scored += 1
                 hits += direction(d, res.moves[d]) == expected
         row["dir_hits"], row["dir_scored"] = hits, scored
+        row["events_used"] = ";".join(res.events_used)
         row["reasoning"] = res.reasoning
         row["errors"] = " | ".join("; ".join(e) for e in res.errors)
         rows.append(row)
         print(f"{sc['id']}: {res.status} in {res.attempts} attempt(s), directions {hits}/{scored}")
 
     out = pd.DataFrame(rows)
-    out_path = EVAL_DIR / "results" / f"{args.out}.csv"
+    out_path = EVAL_DIR / "results" / f"{out_name}.csv"
     out_path.parent.mkdir(exist_ok=True)
     out.to_csv(out_path, index=False)
 
@@ -77,6 +87,7 @@ def main() -> None:
     if len(done):
         print(f"Valid on first try:     {(done['attempts'] == 1).mul(done['status'] == 'ok').sum()} / {len(done)}")
         print(f"Valid after retries:    {len(ok)} / {len(done)}")
+        print(f"Fallback used:          {(done['status'] == 'fallback').sum()}")
         print(f"Failed:                 {(done['status'] == 'failed').sum()}")
     if len(ok):
         print(f"Direction agreement:    {ok['dir_hits'].sum()} / {ok['dir_scored'].sum()} "

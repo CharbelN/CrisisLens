@@ -81,12 +81,23 @@ def holdings_table(result: ForwardResult) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=cols)
 
 
+def twins_table(result: ForwardResult) -> pd.DataFrame:
+    cols = ["Id", "Past event", "Date", "Similarity", "Used by AI"] + [f"{d.label} ({_unit(d)})" for d in DRIVERS]
+    used = set(result.translation.events_used) if result.translation else set()
+    rows = [
+        [t.id, t.name, t.date, t.similarity, "yes" if t.id in used else ""]
+        + ["n/a" if t.moves[d.id] is None else t.moves[d.id] for d in DRIVERS]
+        for t in result.twins
+    ]
+    return pd.DataFrame(rows, columns=cols)
+
+
 def money(x: float) -> str:
     return f"${x:,.0f}"
 
 
 def summary_markdown(result: ForwardResult) -> str:
-    icon = {"ok": "✅", "manual": "✏️"}.get(result.status, "⚠️")
+    icon = {"ok": "✅", "manual": "✏️", "fallback": "🔁"}.get(result.status, "⚠️")
     lines = [f"{icon} {result.message}"]
     s = result.stress
     if s is None:
@@ -105,8 +116,13 @@ def summary_markdown(result: ForwardResult) -> str:
         if s.pnl < 0 and v99.var > 0:
             lines.append(f"This scenario's loss is **{s.loss / v99.var:.1f}×** the 99% VaR.")
     tr = result.translation
+    if tr is not None and tr.events_used:
+        names = {t.id: t.name for t in result.twins}
+        cited = ", ".join(f"{names.get(e, e)} ({e})" for e in tr.events_used)
+        lines.append(f"**Past events relied on:** {cited}")
     if tr is not None and tr.reasoning:
         lines.append(f"**Model's reasoning:** {tr.reasoning}")
         cache_note = "from cache" if tr.latency_s == 0 else f"{tr.latency_s:.1f} s"
-        lines.append(f"<small>Model {tr.model}, {tr.attempts} attempt(s), {cache_note}.</small>")
+        if tr.attempts:
+            lines.append(f"<small>Model {tr.model}, {tr.attempts} attempt(s), {cache_note}.</small>")
     return "\n\n".join(lines)

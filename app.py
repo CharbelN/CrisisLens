@@ -17,7 +17,10 @@ from riskdesk.config import PROJECT_ROOT, load_settings
 from riskdesk.data.market import driver_changes, load_market_data
 from riskdesk.forward import ForwardResult, run_forward, run_manual
 from riskdesk.llm.client import GroqClient
-from riskdesk.ui import holdings_table, moves_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown
+from riskdesk.retrieval.index import Retriever, StaleIndexError
+from riskdesk.ui import (
+    holdings_table, moves_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown, twins_table,
+)
 
 DISCLAIMER = (
     "**These are AI estimates, not forecasts and not investment advice.** "
@@ -36,18 +39,24 @@ def build_app() -> gr.Blocks:
     changes = driver_changes(levels, HORIZON_DAYS)
     limits = plausible_limits(levels)
     client = GroqClient()
+    try:
+        retriever = Retriever.load()
+        retrieval_note = "historical twins on"
+    except (FileNotFoundError, StaleIndexError) as exc:
+        retriever = None
+        retrieval_note = f"historical twins OFF ({exc})"
     scenarios = pd.read_csv(PROJECT_ROOT / "eval" / "scenarios.csv", dtype=str, keep_default_na=False)
     samples = scenarios.set_index("id").loc[SAMPLE_IDS, "scenario"].tolist()
 
     def outputs(result: ForwardResult, moves_df: pd.DataFrame):
-        return summary_markdown(result), moves_df, holdings_table(result)
+        return summary_markdown(result), moves_df, holdings_table(result), twins_table(result)
 
     def on_run(portfolio_df, text):
         try:
             portfolio = parse_portfolio(portfolio_df)
             if not (text or "").strip():
                 return outputs(_error("Type a headline or what-if sentence first."), moves_table())
-            result = run_forward(portfolio, text, client, limits, changes)
+            result = run_forward(portfolio, text, client, limits, changes, retriever)
         except ValueError as exc:  # bad portfolio or moves
             return outputs(_error(str(exc)), moves_table())
         moves = result.translation.moves if result.translation and result.translation.moves else None
@@ -57,8 +66,8 @@ def build_app() -> gr.Blocks:
         try:
             result = run_manual(parse_portfolio(portfolio_df), parse_moves(moves_df), changes)
         except ValueError as exc:
-            return outputs(_error(str(exc)), moves_df)
-        return outputs(result, moves_df)
+            return outputs(_error(str(exc)), moves_df)[:3]
+        return outputs(result, moves_df)[:3]  # keep the twins from the last Run on screen
 
     with gr.Blocks(title="Risk Desk in a Box") as demo:
         gr.Markdown("# Risk Desk in a Box")
@@ -85,16 +94,20 @@ def build_app() -> gr.Blocks:
                 )
                 per_holding = gr.Dataframe(label="Result per holding", interactive=False)
             recalc = gr.Button("Recalculate with these moves")
+            twins = gr.Dataframe(
+                label=f"Historical twins: most similar past events and what markets actually did over {HORIZON_DAYS} trading days",
+                interactive=False,
+            )
 
             for btn, text in zip(sample_buttons, samples):
                 btn.click(lambda t=text: t, outputs=headline)
-            run.click(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding])
-            headline.submit(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding])
+            run.click(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding, twins])
+            headline.submit(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding, twins])
             recalc.click(on_recalc, inputs=[portfolio, moves], outputs=[summary, moves, per_holding])
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "
-            f"Gemini backup {'found' if settings.has_gemini else 'not set (optional)'}."
+            f"Gemini backup {'found' if settings.has_gemini else 'not set (optional)'}, {retrieval_note}."
         )
     return demo
 
