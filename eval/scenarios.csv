@@ -1,0 +1,21 @@
+id,scenario,equity,oil,gold,usd,btc,us10y
+S01,Oil jumps to $150 as a Gulf shipping route closes,-,+,+,?,?,?
+S02,A large US regional bank collapses after a run on deposits,-,-,+,?,?,-
+S03,The Federal Reserve unexpectedly raises rates by 1 percentage point,-,?,-,+,-,+
+S04,The Federal Reserve makes a surprise emergency rate cut of 0.75 points,?,?,+,-,+,-
+S05,A new pandemic forces lockdowns across Europe and North America,-,-,+,+,-,-
+S06,The world's largest crypto exchange freezes withdrawals and files for bankruptcy,0,0,0,0,-,0
+S07,US inflation comes in at 7% far above expectations,-,?,?,+,-,+
+S08,OPEC agrees a surprise large production increase,?,-,0,0,0,?
+S09,US Congress fails to raise the debt ceiling and the Treasury misses a payment,-,?,+,-,?,+
+S10,China invades Taiwan and the US imposes sweeping sanctions,-,+,+,+,-,-
+S11,A major cyberattack shuts down US payment systems for three days,-,?,+,?,?,?
+S12,The US economy enters a deep recession with unemployment rising to 8%,-,-,+,?,-,-
+S13,US approves bitcoin as a legal reserve asset for the Treasury,0,0,0,0,+,0
+S14,A ceasefire ends the war in the Middle East and shipping returns to normal,+,-,-,?,?,?
+S15,Strong jobs report shows the economy is growing steadily with low inflation,+,0,0,0,?,?
+S16,Euro area breaks up as Italy announces it will leave the euro,-,-,+,+,?,-
+S17,A major hurricane destroys refineries along the US Gulf Coast,?,+,0,0,0,0
+S18,AI boom: big tech reports record profits and raises forecasts,+,0,0,0,?,?
+S19,Nothing happens; markets are quiet,0,0,0,0,0,0
+S20,Aliens land in Central Park,?,?,?,?,?,?
