@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Gradio runtime files
+.gradio/
+flagged/
+
+# Development LLM answer cache (the demo cache in cache/demo/ IS committed)
+cache/dev/*
+!cache/dev/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
