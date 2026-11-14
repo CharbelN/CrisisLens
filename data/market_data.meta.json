@@ -1,0 +1,24 @@
+{
+  "downloaded_on": "2026-11-14",
+  "start": "2005-01-01",
+  "rows": 5502,
+  "first_date": "2005-01-03",
+  "last_date": "2026-11-13",
+  "sources": {
+    "equity": "yfinance ^GSPC",
+    "gold": "yfinance GC=F",
+    "usd": "yfinance DX-Y.NYB",
+    "btc": "yfinance BTC-USD",
+    "oil": "FRED DCOILBRENTEU",
+    "us10y": "FRED DGS10"
+  },
+  "units": "price levels; us10y in percent (4.25 = 4.25%)",
+  "missing_values_per_column": {
+    "equity": 0,
+    "oil": 8,
+    "gold": 0,
+    "usd": 0,
+    "btc": 2443,
+    "us10y": 0
+  }
+}
