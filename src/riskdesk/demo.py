@@ -25,7 +25,7 @@ from riskdesk.retrieval.index import Retriever
 from riskdesk.ui import parse_portfolio, portfolio_table
 
 SAMPLE_IDS = ["S01", "S02", "S03", "S06", "S10"]  # the sample buttons in the app
-DEMO_TARGETS = [20.0]  # backward mode: the default target in the app
+DEMO_TARGETS = [10.0]  # backward mode: the default target in the app
 
 
 def sample_headlines() -> list[str]:

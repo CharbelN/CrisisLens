@@ -173,6 +173,18 @@ def test_invalid_json_is_a_bad_answer_not_an_outage(tmp_path):
     assert res.ok and "not valid JSON" in res.errors[0][0]
 
 
+@pytest.mark.parametrize("code,msg", [
+    ("json_validate_failed", "Failed to validate JSON. Please adjust your prompt."),
+    ("json_generate_failed", "Failed to generate JSON. Please adjust your prompt."),
+])
+def test_invalid_json_as_the_openai_sdk_reports_it(tmp_path, code, msg):
+    # the openai SDK's message has no error code in it; the code is only in the unwrapped body
+    err = StatusError(400, f"Error code: 400 - {msg}", {"message": msg, "code": code, "failed_generation": "{x"})
+    sdk = FakeSDK({"big": err, "small": "{}"})
+    reply = make(["big", "small"], sdk, tmp_path).chat_json(MSG)
+    assert reply.text == "{x" and sdk.calls == ["big"]
+
+
 def test_demo_cache_is_read_first_and_never_written(tmp_path):
     from riskdesk.llm.client import save_reply
 

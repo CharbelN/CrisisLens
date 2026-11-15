@@ -10,7 +10,7 @@ A personal risk manager for an ordinary investor, built as the final project for
   *"Oil jumps to $150 as a Gulf shipping route closes"*. The app finds the most similar past market events,
   asks a language model to turn the headline into market moves grounded in those events, applies the moves to
   your portfolio and shows the loss, the result per holding and a comparison with historical Value-at-Risk.
-- **Backward mode: "what would make me lose 20%?"** Code searches for market moves that produce exactly that loss;
+- **Backward mode: "what would make me lose 10%?"** Code searches for market moves that produce exactly that loss;
   the language model writes each one as a short news story.
 - **Risk memo.** A plain-language memo of the result. A number checker compares every number in it with the
   calculated figures and makes the model correct the memo when one does not match.
@@ -36,7 +36,7 @@ uv run pytest                # run the tests
 ```
 
 **Try it without any API key:** keep the sample portfolio and click the sample headlines, or use the backward tab
-with the 20% target. Their answers are saved in `cache/demo/`, so they work offline. In the forward tab, tick
+with the 10% target. Their answers are saved in `cache/demo/`, so they work offline. In the forward tab, tick
 *"Demo: plant a wrong number in the memo's first draft"* to watch the number checker catch it.
 The *Recalculate with these moves* button needs no AI at all.
 

@@ -277,14 +277,23 @@ def _should_switch(exc: Exception) -> bool:
     return type(exc).__name__ in _NETWORK_ERRORS or isinstance(exc, (ConnectionError, TimeoutError))
 
 
-def _is_invalid_json(exc: Exception) -> bool:
-    return getattr(exc, "status_code", None) == 400 and "json_validate_failed" in str(exc)
-
-
-def _failed_generation(exc: Exception) -> str:
+def _error_body(exc: Exception) -> dict:
     body = getattr(exc, "body", None)
     if isinstance(body, dict):
         err = body.get("error", body)  # the openai SDK already unwraps "error"; others may not
         if isinstance(err, dict):
-            return str(err.get("failed_generation") or "")
-    return ""
+            return err
+    return {}
+
+
+def _is_invalid_json(exc: Exception) -> bool:
+    """Groq's server-side JSON check failed (codes json_validate_failed / json_generate_failed)."""
+    if getattr(exc, "status_code", None) != 400:
+        return False
+    code = str(_error_body(exc).get("code") or "")
+    text = str(exc).lower()
+    return code.startswith("json_") or "json_validate_failed" in text or "to validate json" in text         or "to generate json" in text
+
+
+def _failed_generation(exc: Exception) -> str:
+    return str(_error_body(exc).get("failed_generation") or "")
