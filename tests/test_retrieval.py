@@ -9,7 +9,7 @@ import pytest
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS
 from riskdesk.llm.client import LLMReply
-from riskdesk.llm.translator import STRONG_MATCH, build_messages, check_directions, direction_lock, translate, typical_moves
+from riskdesk.llm.translator import STRONG_MATCH, build_messages, fallback_moves, check_directions, direction_lock, translate, typical_moves
 from riskdesk.retrieval.index import Retriever, StaleIndexError, Twin, build_index, twin_average
 
 WORDS = ["oil", "bank", "fed", "crypto"]
@@ -161,10 +161,23 @@ def test_evidence_cannot_flip_a_direction():
 
 
 def test_fallback_uses_strong_twins_only():
-    twins = [twin("A", 0.8, oil=30), twin("B", STRONG_MATCH - 0.1, oil=-50)]
+    # A and B are strong and agree on oil: (0.8 x 30 + 0.7 x 10) / 1.5 = 20.67; C is weak and ignored
+    twins = [twin("A", 0.8, oil=30), twin("B", 0.7, oil=10), twin("C", STRONG_MATCH - 0.1, oil=-50)]
     res = translate("Oil up", FakeClient(["bad"] * 6), LIMITS, twins)
-    assert res.status == "fallback" and res.moves["oil"] == pytest.approx(30.0)
-    assert res.events_used == ["A"]
+    assert res.status == "fallback" and res.moves["oil"] == pytest.approx(20.67)
+    assert res.events_used == ["A", "B"]
+
+
+def test_fallback_sets_disagreeing_drivers_to_zero():
+    # oil: +30 and -10 disagree -> 0; equity: -5 and -3 agree -> (0.8 x -5 + 0.7 x -3) / 1.5 = -4.07
+    twins = [twin("A", 0.8, oil=30, equity=-5), twin("B", 0.7, oil=-10, equity=-3)]
+    moves = fallback_moves(twins, LIMITS)
+    assert moves["oil"] == 0.0 and moves["equity"] == pytest.approx(-4.07)
+
+
+def test_no_fallback_with_one_strong_twin_or_no_agreement():
+    assert fallback_moves([twin("A", 0.9, oil=30), twin("B", 0.4, oil=30)], LIMITS) is None
+    assert fallback_moves([twin("A", 0.9, oil=30), twin("B", 0.8, oil=-30)], LIMITS) is None
 
 
 def test_no_fallback_without_strong_twins():
@@ -174,5 +187,5 @@ def test_no_fallback_without_strong_twins():
 
 def test_fallback_is_clipped_to_limits():
     tight = LIMITS | {"oil": Limits(-20.0, 20.0)}
-    res = translate("Oil up", FakeClient(["bad"] * 6), tight, [twin("A", 0.9, oil=60)])
+    res = translate("Oil up", FakeClient(["bad"] * 6), tight, [twin("A", 0.9, oil=60), twin("B", 0.8, oil=40)])
     assert res.moves["oil"] == 20.0

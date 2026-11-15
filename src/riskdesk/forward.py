@@ -23,7 +23,9 @@ from riskdesk.checks.moves import HORIZON_DAYS, Limits
 from riskdesk.engine.portfolio import Portfolio, StressResult, apply_moves
 from riskdesk.engine.var import VarResult, historical_var_es
 from riskdesk.llm.client import LLMUnavailableError
-from riskdesk.llm.translator import STRONG_MATCH, ChatClient, TranslationResult, fallback_moves, translate
+from riskdesk.llm.translator import (
+    FALLBACK_NOTE, STRONG_MATCH, ChatClient, TranslationResult, fallback_moves, translate,
+)
 from riskdesk.retrieval.index import Twin
 
 VAR_LEVELS = (0.95, 0.99)
@@ -68,13 +70,14 @@ def run_forward(
         fb = fallback_moves(twins, limits)
         if fb is not None:
             stress, var = compute(portfolio, fb, changes)
-            tr = TranslationResult("fallback", fb, "The language model is unavailable; these are the average real "
-                                   "moves of the closest past events.", [t.id for t in twins if t.similarity >= STRONG_MATCH], 0)
-            return ForwardResult("fallback", f"The language model is not available ({exc}), so the moves are the "
-                                 "average real moves of the closest past events (fallback).", tr, stress, var, twins)
+            tr = TranslationResult("fallback", fb, "The language model is unavailable. " + FALLBACK_NOTE,
+                                   [t.id for t in twins if t.similarity >= STRONG_MATCH], 0)
+            return ForwardResult("fallback", f"The language model is not available ({exc}), so the moves come from "
+                                 "the closest past events where they agree (fallback).", tr, stress, var, twins)
         return ForwardResult(
             "llm_unavailable",
-            f"The language model is not available ({exc}). You can type moves by hand and press Recalculate.",
+            f"The language model is not available ({exc}), and there are not enough close past events that agree "
+            "to fall back on. You can type moves by hand and press Recalculate.",
             None, None, {}, twins,
         )
     if not tr.has_moves:

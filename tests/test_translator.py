@@ -107,3 +107,23 @@ def test_other_errors_raise_clearly(tmp_path):
     client = GroqClient(model="big", fallback_model="small", cache_dir=tmp_path, sdk=sdk)
     with pytest.raises(LLMUnavailableError):
         client.chat_json(MSG)
+
+
+class BadRequestError(Exception):
+    status_code = 400
+
+    def __init__(self, msg, body):
+        super().__init__(msg)
+        self.body = body
+
+
+def test_invalid_json_is_a_bad_answer_not_an_outage(tmp_path):
+    err = BadRequestError("Error code: 400 - json_validate_failed", {"error": {"code": "json_validate_failed", "failed_generation": "{oops"}})
+    sdk = FakeSDK({"big": err})
+    client = GroqClient(model="big", fallback_model="small", cache_dir=tmp_path, sdk=sdk)
+    reply = client.chat_json(MSG)
+    assert reply.text == "{oops" and sdk.calls == ["big"]
+    assert not any(tmp_path.iterdir())  # never cached
+    # the translator then asks again with the problem
+    res = translate("Oil jumps", FakeClient([reply.text, GOOD]), LIMITS)
+    assert res.ok and "not valid JSON" in res.errors[0][0]

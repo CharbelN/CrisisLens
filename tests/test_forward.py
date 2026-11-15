@@ -99,10 +99,12 @@ def test_text_amount_rejected():
 def test_llm_down_uses_strong_twins():
     from riskdesk.retrieval.index import Twin
 
-    class OneTwin:
+    class TwoTwins:  # both strong, both equity -10% -> they agree -> average -10%
         def search(self, text):
-            return [Twin("E1", "Oil shock", "2020-01-01", "d", "market", 0.9, {d: 0.0 for d in DRIVER_IDS} | {"equity": -10.0})]
+            moves = {d: 0.0 for d in DRIVER_IDS} | {"equity": -10.0}
+            return [Twin("E1", "Oil shock", "2020-01-01", "d", "market", 0.9, moves),
+                    Twin("E2", "Oil shock 2", "2021-01-01", "d", "market", 0.8, moves)]
 
-    res = run_forward(PORTFOLIO, "Oil up", FakeClient(error=LLMUnavailableError("down")), LIMITS, CHANGES, OneTwin())
+    res = run_forward(PORTFOLIO, "Oil up", FakeClient(error=LLMUnavailableError("down")), LIMITS, CHANGES, TwoTwins())
     assert res.status == "fallback" and res.stress.pnl == pytest.approx(-1000)
     assert ui.twins_table(res).iloc[0]["Used by AI"] == "yes"

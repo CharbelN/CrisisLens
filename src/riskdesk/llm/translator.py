@@ -11,9 +11,9 @@ Flow:
    scenario states a level ("oil jumps to $150") code computes that move and checks the
    model's (checks/levels.py). If it is still off after the retries, code puts it in.
 4. If it still fails:
-   - with twins that are a real match (similarity >= STRONG_MATCH): use the
-     similarity-weighted average of their real moves, clipped to the limits,
-     and say so (status "fallback");
+   - with at least FALLBACK_MIN_TWINS strong twins (similarity >= STRONG_MATCH): for each
+     driver where they all moved the same way, the similarity-weighted average of their
+     real moves, clipped to the limits; 0 where they disagree (status "fallback");
    - otherwise: status "failed" with the reasons. Moves are never invented.
 
 The moves are the model's educated guesses, not forecasts.
@@ -32,7 +32,11 @@ from riskdesk.llm.client import LLMReply, Messages
 from riskdesk.retrieval.index import Twin, twin_average
 
 MAX_RETRIES = 2
-STRONG_MATCH = 0.6  # bge-small cosine similarity; below this a twin is a weak match
+# bge-small cosine similarity; below this a twin is a weak match. Measured on eval/scenarios.csv
+# (top 4 per headline): 0.65 keeps 24/30 expected matches and 19/42 others (0.60: 28/30 and 34/42).
+# Right and wrong matches overlap, so "strong" means related, not proven comparable.
+STRONG_MATCH = 0.65
+FALLBACK_MIN_TWINS = 2  # the no-model fallback needs at least this many strong twins
 # A move within this band counts as "flat" (no clear direction): prices in %, the yield in bp.
 FLAT_BAND = {"pct": 2.0, "bp": 15.0}
 
@@ -182,12 +186,27 @@ Answer with JSON only, in exactly this shape:
     ]
 
 
+FALLBACK_NOTE = ("These are the average real moves of the closest past events, kept only where at least "
+                 f"{FALLBACK_MIN_TWINS} of them moved the same way; drivers where they disagreed are set to 0.")
+
+
 def fallback_moves(twins: Sequence[Twin], limits: dict[str, Limits]) -> dict[str, float] | None:
+    """Moves from the strong twins alone (no model), or None if they are too few or never agree.
+
+    Why the agreement rule: similarity cannot tell a comparable event from one that only sounds
+    alike (an OPEC output cut is the top match for an OPEC output increase), so a driver gets a
+    move only when at least FALLBACK_MIN_TWINS strong twins with data all moved the same way.
+    """
     strong = [t for t in twins if t.similarity >= STRONG_MATCH]
-    if not strong:
+    if len(strong) < FALLBACK_MIN_TWINS:
         return None
     avg = twin_average(strong)
-    return {d: round(min(max(v, limits[d].low), limits[d].high), 2) for d, v in avg.items()}
+    out: dict[str, float] = {}
+    for d in DRIVERS:
+        vals = [t.moves[d.id] for t in strong if t.moves[d.id] is not None]
+        agree = len(vals) >= FALLBACK_MIN_TWINS and (all(v > 0 for v in vals) or all(v < 0 for v in vals))
+        out[d.id] = round(min(max(avg[d.id], limits[d.id].low), limits[d.id].high), 2) if agree else 0.0
+    return out if any(out.values()) else None
 
 
 def direction_lock(moves: dict[str, float]) -> dict[str, str]:
@@ -324,5 +343,5 @@ def translate(
         result.status = "fallback"
         result.moves = fb
         result.events_used = strong
-        result.reasoning = "The model's answers failed the checks, so these are the average real moves of the closest past events."
+        result.reasoning = "The model's answers failed the checks. " + FALLBACK_NOTE
     return result

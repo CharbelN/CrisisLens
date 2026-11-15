@@ -147,6 +147,10 @@ class GroqClient:
                 last_error = exc
                 if _is_rate_limit(exc):
                     continue  # try the fallback model
+                if _is_invalid_json(exc):
+                    # The model answered, but not with valid JSON (Groq rejects it server-side). That is a
+                    # bad answer, not an outage: return it uncached so the caller's checks ask again.
+                    return LLMReply(_failed_generation(exc), model, 0, 0, 0.0, False)
                 raise LLMUnavailableError(f"Groq request failed: {exc}") from exc
             self._write_cache(messages, reply)
             return reply
@@ -155,3 +159,16 @@ class GroqClient:
 
 def _is_rate_limit(exc: Exception) -> bool:
     return getattr(exc, "status_code", None) == 429 or type(exc).__name__ == "RateLimitError"
+
+
+def _is_invalid_json(exc: Exception) -> bool:
+    return getattr(exc, "status_code", None) == 400 and "json_validate_failed" in str(exc)
+
+
+def _failed_generation(exc: Exception) -> str:
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error", body)
+        if isinstance(err, dict):
+            return str(err.get("failed_generation") or "")
+    return ""
