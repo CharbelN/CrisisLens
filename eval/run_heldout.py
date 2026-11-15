@@ -16,8 +16,9 @@ person names, no numbers):
     size error:    |answer - real|, prices in points, the yield in bp / 10.
 Bitcoin is scored only where it has data.
 
-Calls are paced to stay under Groq's tokens-per-minute limit, and the smaller fallback model
-is switched off, so every answer comes from the same model. Answers are cached in cache/dev/.
+Calls are paced to stay under Groq's tokens-per-minute limit. Groq gpt-oss-120b answers first;
+when its daily limit is used up, Gemini Flash-Lite answers instead (the "model" column says which).
+Answers are cached in cache/dev/.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ import pandas as pd
 from riskdesk.checks.moves import default_limits
 from riskdesk.data.library import load_library
 from riskdesk.engine.drivers import DRIVER_IDS, DRIVERS_BY_ID
-from riskdesk.llm.client import MAIN_MODEL, PacedClient
+from riskdesk.llm.client import GEMINI_LITE, GROQ_MAIN, MAIN_MODEL, LLMClient, PacedClient
 from riskdesk.llm.translator import FLAT_BAND, fallback_moves, translate
 from riskdesk.retrieval.index import Retriever
 
@@ -52,7 +53,7 @@ def hidden_ids(library: pd.DataFrame, event_id: str) -> set[str]:
 def main() -> None:
     library = load_library()
     tests = pd.read_csv(EVAL_DIR / "heldout_events.csv", dtype=str)
-    limits, client, retriever = default_limits(), PacedClient(), Retriever.load()
+    limits, client, retriever = default_limits(), PacedClient(inner=LLMClient([GROQ_MAIN, GEMINI_LITE])), Retriever.load()
     lib = library.set_index("id")
 
     rows = []

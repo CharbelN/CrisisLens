@@ -137,8 +137,7 @@ def build_app() -> gr.Blocks:
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "
-            f"backups: OpenRouter {'on' if settings.has_openrouter else 'off'}, "
-            f"Gemini {'on' if settings.has_gemini else 'off'} (optional), {retrieval_note}, "
+            f"Gemini backup {'on' if settings.has_gemini else 'off (optional)'}, {retrieval_note}, "
             f"starting levels from the latest close in the data ({start.date}), "
             f"{n_demo} saved demo answer(s) (used first, so the samples work offline with the sample portfolio)."
         )

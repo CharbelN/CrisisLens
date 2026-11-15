@@ -118,8 +118,13 @@ def test_limit_server_or_network_error_moves_to_next_provider(tmp_path, err):
     assert reply.model == "small" and reply.provider == "p2" and sdk.calls == ["big", "small"]
 
 
-def test_other_errors_stop_at_once(tmp_path):
+def test_rejected_key_moves_to_next_provider(tmp_path):
     sdk = FakeSDK({"big": StatusError(401, "bad key"), "small": "{}"})
+    assert make(["big", "small"], sdk, tmp_path).chat_json(MSG).provider == "p2"
+
+
+def test_other_errors_stop_at_once(tmp_path):
+    sdk = FakeSDK({"big": StatusError(400, "bad request"), "small": "{}"})
     with pytest.raises(LLMUnavailableError):
         make(["big", "small"], sdk, tmp_path).chat_json(MSG)
     assert sdk.calls == ["big"]  # no switch on a non-outage error
@@ -148,12 +153,10 @@ def test_provider_extra_fields_are_sent(tmp_path):
     assert sdk.kwargs[0]["reasoning_effort"] == "low" and sdk.kwargs[0]["temperature"] == 0
 
 
-def test_default_order_and_optional_backups():
+def test_default_order_and_optional_backup():
     names = lambda env: [(p.name, p.model) for p in default_providers(load_settings(env))]  # noqa: E731
     assert names({}) == [("groq", "openai/gpt-oss-120b"), ("groq", "openai/gpt-oss-20b")]
-    full = names({"OPENROUTER_API_KEY": "a", "GEMINI_API_KEY": "b"})
-    assert [n for n, _ in full] == ["groq", "groq", "openrouter", "gemini"]
-    assert full[2][1] == "openai/gpt-oss-120b:free"
+    assert [n for n, _ in names({"GEMINI_API_KEY": "b"})] == ["groq", "groq", "gemini"]
 
 
 def test_invalid_json_is_a_bad_answer_not_an_outage(tmp_path):

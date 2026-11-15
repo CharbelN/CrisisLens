@@ -23,3 +23,10 @@ Thumbs.db
 
 # Downloaded embedding model
 .cache/
+
+# Private working notes (kept locally, not shared)
+risk-desk-in-a-box.md
+PROGRESS.md
+DEMO.md
+eval/results/heldout.csv
+eval/results/heldout_summary.csv

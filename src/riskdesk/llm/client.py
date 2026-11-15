@@ -1,13 +1,14 @@
 """One client for every language-model provider: always asks for JSON, caches every answer.
 
-Groq, OpenRouter and Gemini all offer an OpenAI-compatible endpoint, so a provider is only
-settings (a URL, a key and a model name) and one `openai` SDK does all the calls.
-The client tries the providers in order (default: Groq 120b, Groq 20b, OpenRouter's free
-120b if OPENROUTER_API_KEY is set, Gemini Flash-Lite if GEMINI_API_KEY is set).
+Groq and Gemini both offer an OpenAI-compatible endpoint, so a provider is only settings
+(a URL, a key and a model name) and one `openai` SDK does all the calls.
+The client tries the providers in order: Groq 120b, Groq 20b, then Gemini Flash-Lite as the
+backup if GEMINI_API_KEY is set.
 
 When it moves on to the next provider:
-- rate limit (HTTP 429), server error (5xx), network failure, or the provider's key is not set.
-Any other error (bad request, wrong key) stops at once with LLMUnavailableError.
+- rate limit (HTTP 429), server error (5xx), network failure, or the provider's key is
+  missing or rejected (401 / 403).
+Any other error (a bad request) stops at once with LLMUnavailableError.
 A broken-JSON answer is NOT an outage: Groq rejects it server-side (`json_validate_failed`) and
 returns the bad text, which is handed back so the caller's checks ask the SAME provider again.
 
@@ -44,7 +45,7 @@ Messages = list[dict[str, str]]
 class Provider:
     """Where to send a question: an OpenAI-compatible endpoint, its key and one model."""
 
-    name: str  # "groq", "openrouter", "gemini"
+    name: str  # "groq", "gemini"
     model: str
     base_url: str
     key_setting: str  # attribute of Settings that holds the key
@@ -55,19 +56,15 @@ class Provider:
 
 
 GROQ_URL = "https://api.groq.com/openai/v1"
-OPENROUTER_URL = "https://openrouter.ai/api/v1"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 GROQ_MAIN = Provider("groq", "openai/gpt-oss-120b", GROQ_URL, "groq_api_key")
 GROQ_SMALL = Provider("groq", "openai/gpt-oss-20b", GROQ_URL, "groq_api_key")
-# Same model as Groq's main one, so a switch changes the answers less. Free: about 50 requests/day.
-OPENROUTER_FREE = Provider("openrouter", "openai/gpt-oss-120b:free", OPENROUTER_URL, "openrouter_api_key")
 # Gemini's OpenAI layer is still in beta, so it comes last. Gemini 3 always reasons: keep it short.
 GEMINI_LITE = Provider("gemini", "gemini-flash-lite-latest", GEMINI_URL, "gemini_api_key",
                        {"reasoning_effort": "low"})
 
 MAIN_MODEL = GROQ_MAIN.model
-FALLBACK_MODEL = GROQ_SMALL.model
 
 
 class LLMUnavailableError(RuntimeError):
@@ -91,11 +88,9 @@ def cache_key(model: str, messages: Messages) -> str:
 
 
 def default_providers(settings: Settings | None = None) -> list[Provider]:
-    """Groq first, then the optional backups whose key is set."""
+    """Groq first, then Gemini as the backup if its key is set."""
     settings = settings or load_settings()
     providers = [GROQ_MAIN, GROQ_SMALL]
-    if settings.has_openrouter:
-        providers.append(OPENROUTER_FREE)
     if settings.has_gemini:
         providers.append(GEMINI_LITE)
     return providers
@@ -227,7 +222,7 @@ class LLMClient:
 
 
 def default_client() -> LLMClient:
-    """For the app: Groq, then every backup whose key is set."""
+    """For the app: Groq, then Gemini if its key is set."""
     return LLMClient()
 
 
@@ -275,9 +270,9 @@ _NETWORK_ERRORS = {"APIConnectionError", "APITimeoutError", "ConnectError", "Rea
 
 
 def _should_switch(exc: Exception) -> bool:
-    """Rate limit, server error or network failure: worth trying the next provider."""
+    """Rate limit, server error, rejected key or network failure: worth trying the next provider."""
     status = getattr(exc, "status_code", None)
-    if status == 429 or (isinstance(status, int) and status >= 500):
+    if status in (401, 403, 429) or (isinstance(status, int) and status >= 500):
         return True
     return type(exc).__name__ in _NETWORK_ERRORS or isinstance(exc, (ConnectionError, TimeoutError))
 
