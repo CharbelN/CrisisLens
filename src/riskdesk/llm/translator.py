@@ -7,6 +7,9 @@ Flow:
 2. Ask the language model for JSON.
 3. Check the answer (checks/moves.py). If it fails, send the problems back to the
    model and ask again, at most MAX_RETRIES times.
+   With starting levels: the model is told today's level of each driver, and when the
+   scenario states a level ("oil jumps to $150") code computes that move and checks the
+   model's (checks/levels.py). If it is still off after the retries, code puts it in.
 4. If it still fails:
    - with twins that are a real match (similarity >= STRONG_MATCH): use the
      similarity-weighted average of their real moves, clipped to the limits,
@@ -18,9 +21,11 @@ The moves are the model's educated guesses, not forecasts.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Protocol, Sequence
 
+from riskdesk.checks.levels import StartLevels, check_levels, numbers_in_text, start_levels_text
 from riskdesk.checks.moves import HORIZON_DAYS, Limits, check_translation
 from riskdesk.engine.drivers import DRIVERS
 from riskdesk.llm.client import LLMReply, Messages
@@ -48,6 +53,8 @@ class TranslationResult:
     completion_tokens: int = 0
     latency_s: float = 0.0
     model: str = ""
+    stated_levels: dict[str, float] = field(default_factory=dict)  # levels the scenario states (driver -> level)
+    level_fixes: list[str] = field(default_factory=list)  # drivers whose move code set from a stated level
 
     @property
     def ok(self) -> bool:
@@ -115,7 +122,22 @@ EVIDENCE_RULES = f"""How to use the evidence:
 - For a driver the scenario does not touch, prefer a small move or 0 over a move borrowed from the evidence."""
 
 
-def build_messages(text: str, limits: dict[str, Limits], twins: Sequence[Twin] | None = None) -> Messages:
+def _levels_rule(start: StartLevels) -> str:
+    return f"""
+- Today's starting levels (latest close in our data, {start.date}): {start_levels_text(start)}.
+  If the scenario states a level for a driver (for example "oil jumps to $150"), that driver's move is
+  exactly the change from today's level to the stated level: (level / start - 1) x 100 for prices,
+  (level - start) x 100 bp for the yield.
+- "stated_levels" lists only levels the scenario itself states, e.g. {{"oil": 150}} (the yield in percent,
+  e.g. {{"us10y": 6}}); it is {{}} if the scenario states none."""
+
+
+LEVELS_KEY = ',\n "stated_levels": {}'
+
+
+def build_messages(
+    text: str, limits: dict[str, Limits], twins: Sequence[Twin] | None = None, start: StartLevels | None = None
+) -> Messages:
     if twins:
         evidence = (
             "\n\nEvidence: the most similar past events found in our crisis library, with what markets "
@@ -130,6 +152,11 @@ def build_messages(text: str, limits: dict[str, Limits], twins: Sequence[Twin] |
     else:
         evidence = '\n\n"events_used" lists the names of the past events you relied on; it may be empty.'
 
+    # Starting levels only when the text holds a number: a level cannot be stated without one. Measured on
+    # eval/scenarios.csv, showing them for every headline made the model inflate moves on untouched drivers.
+    show_levels = start is not None and bool(numbers_in_text(text))
+    levels_rule = _levels_rule(start) if show_levels else ""
+    levels_key = LEVELS_KEY if show_levels else ""
     system = f"""You are a market risk analyst. You turn a news headline or what-if sentence into
 your best estimate of how six market risk drivers would move over the next {HORIZON_DAYS} trading days
 (about one month) if it happened. These are educated guesses, not forecasts.
@@ -143,12 +170,12 @@ Rules:
 - Give a number for every driver. Use 0 if you expect no meaningful change.
 - Think about direct effects and the usual knock-on effects (flight to safety, inflation, central bank reaction).
 - Size the moves by comparing with real past episodes.
-- Plain numbers only: no units, no ranges, no strings.
+- Plain numbers only: no units, no ranges, no strings.{levels_rule}
 
 Answer with JSON only, in exactly this shape:
 {{"moves": {{"equity": 0, "oil": 0, "gold": 0, "usd": 0, "btc": 0, "us10y": 0}},
  "reasoning": "two or three sentences explaining the main moves",
- "events_used": []}}{evidence}"""
+ "events_used": []{levels_key}}}{evidence}"""
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": f"Scenario: {text.strip()}"},
@@ -183,10 +210,12 @@ def _lock_text(lock: dict[str, str]) -> str:
             "evidence only to size it: " + ", ".join(words) + ".")
 
 
-def check_directions(moves: dict[str, float], lock: dict[str, str]) -> list[str]:
-    """Problems where an evidence-based move breaks the locked direction."""
+def check_directions(moves: dict[str, float], lock: dict[str, str], skip: set[str] = frozenset()) -> list[str]:
+    """Problems where an evidence-based move breaks the locked direction (drivers in `skip` are not checked)."""
     errors = []
     for d in DRIVERS:
+        if d.id in skip:
+            continue
         v, want, band = moves[d.id], lock[d.id], FLAT_BAND[d.unit]
         unit = _unit_word(d)
         if want == "+" and v <= band or want == "-" and v >= -band:
@@ -202,9 +231,14 @@ def check_directions(moves: dict[str, float], lock: dict[str, str]) -> list[str]
 def _ask(
     client: ChatClient, messages: Messages, limits: dict[str, Limits], result: TranslationResult,
     allowed: set[str] | None = None, lock: dict[str, str] | None = None,
+    start: StartLevels | None = None, text: str = "",
 ) -> bool:
-    """Ask, check, re-ask with the problems (at most MAX_RETRIES times). Fills `result`; True if valid."""
-    for _ in range(1 + MAX_RETRIES):
+    """Ask, check, re-ask with the problems (at most MAX_RETRIES times). Fills `result`; True if valid.
+
+    On the last attempt, if the only problems are moves that do not match a stated level,
+    code puts in the computed moves (and ignores levels that are not in the text).
+    """
+    for attempt in range(1 + MAX_RETRIES):
         reply = client.chat_json(messages)
         result.attempts += 1
         result.prompt_tokens += reply.prompt_tokens
@@ -213,14 +247,30 @@ def _ask(
         result.model = reply.model
 
         check = check_translation(reply.text, limits, allowed)
-        errors = check.errors
-        if check.ok and lock is not None:
-            errors = check_directions(check.moves, lock)
+        errors = list(check.errors)
+        level_errors: list[str] = []
+        fixes: dict[str, float] = {}
+        used: dict[str, float] = {}
+        if check.ok:
+            if start is not None:
+                lv = check_levels(json.loads(reply.text).get("stated_levels"), check.moves, start, text)
+                level_errors, fixes, used = lv.errors, lv.fixes, lv.used
+            if lock is not None:
+                errors += check_directions(check.moves, lock, skip=set(used))
+
+        moves = check.moves
+        if check.ok and not errors and level_errors and attempt == MAX_RETRIES:
+            outside = [d for d, v in fixes.items() if not limits[d].low <= v <= limits[d].high]
+            if not outside:  # last attempt: code puts in the moves implied by the stated levels
+                moves, level_errors = check.moves | fixes, []
+                result.level_fixes = sorted(fixes)
+        errors += level_errors
         if not errors:
             result.status = "ok"
-            result.moves = check.moves
+            result.moves = moves
             result.reasoning = check.reasoning
             result.events_used = check.events_used
+            result.stated_levels = used
             return True
 
         result.errors.append(errors)
@@ -233,7 +283,8 @@ def _ask(
 
 
 def translate(
-    text: str, client: ChatClient, limits: dict[str, Limits], twins: Sequence[Twin] | None = None
+    text: str, client: ChatClient, limits: dict[str, Limits], twins: Sequence[Twin] | None = None,
+    start: StartLevels | None = None,
 ) -> TranslationResult:
     """Without twins: one checked answer. With twins: two steps.
 
@@ -248,22 +299,23 @@ def translate(
     twins = list(twins or [])
     result = TranslationResult(status="failed", moves=None, reasoning="", events_used=[], attempts=0)
     if not twins:
-        _ask(client, build_messages(text, limits), limits, result)
+        _ask(client, build_messages(text, limits, start=start), limits, result, start=start, text=text)
         return result
 
-    _ask(client, build_messages(text, limits), limits, result)  # step 1: directions
-    base = (result.moves, result.reasoning) if result.ok else None
+    _ask(client, build_messages(text, limits, start=start), limits, result, start=start, text=text)  # step 1
+    base = (result.moves, result.reasoning, result.stated_levels, result.level_fixes) if result.ok else None
     lock = direction_lock(result.moves) if base else None
     result.status, result.moves, result.reasoning, result.events_used = "failed", None, "", []
+    result.stated_levels, result.level_fixes = {}, []
 
-    messages = build_messages(text, limits, twins)
+    messages = build_messages(text, limits, twins, start)
     if lock is not None:
         messages[0] = {"role": "system", "content": messages[0]["content"] + _lock_text(lock)}
-    if _ask(client, messages, limits, result, {t.id for t in twins}, lock):  # step 2: sizes
+    if _ask(client, messages, limits, result, {t.id for t in twins}, lock, start, text):  # step 2: sizes
         return result
 
     if base is not None:
-        result.status, result.moves = "ok", base[0]
+        result.status, result.moves, result.stated_levels, result.level_fixes = "ok", base[0], base[2], base[3]
         result.reasoning = "Answer without past-event evidence (the evidence-based answers failed the checks). " + base[1]
         return result
     fb = fallback_moves(twins, limits)

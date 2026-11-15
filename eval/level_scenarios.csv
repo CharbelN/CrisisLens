@@ -1,0 +1,9 @@
+id,scenario,levels
+L01,Oil jumps to $150 as a Gulf shipping route closes,oil=150
+L02,Oil falls to $60 as OPEC floods the market,oil=60
+L03,Bitcoin crashes to $30000 after a major exchange hack,btc=30000
+L04,The US 10-year Treasury yield jumps to 6%,us10y=6
+L05,Gold soars to $5000 an ounce as investors flee to safety,gold=5000
+L06,The S&P 500 falls to 6000 in a broad sell-off,equity=6000
+L07,Bitcoin hits $150000 as institutions pile in,btc=150000
+L08,Oil spikes to $130 and the 10-year yield rises to 5.75%,oil=130;us10y=5.75

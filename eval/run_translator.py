@@ -18,7 +18,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from riskdesk.checks.levels import latest_levels
 from riskdesk.checks.moves import default_limits
+from riskdesk.data.market import load_market_data
 from riskdesk.engine.drivers import DRIVER_IDS, DRIVERS_BY_ID
 from riskdesk.llm.client import GroqClient, LLMUnavailableError
 from riskdesk.llm.translator import translate
@@ -35,8 +37,10 @@ def direction(driver: str, move: float) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rag", action="store_true", help="give the model the retrieved past events")
+    parser.add_argument("--no-levels", action="store_true", help="do not tell the model today's starting levels")
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
+    start = None if args.no_levels else latest_levels(load_market_data())
     out_name = args.out or ("translator_with_rag" if args.rag else "translator_before_rag")
     retriever = None
     if args.rag:
@@ -53,7 +57,7 @@ def main() -> None:
         row = {"id": sc["id"], "scenario": sc["scenario"]}
         try:
             twins = retriever.search(sc["scenario"]) if retriever else None
-            res = translate(sc["scenario"], client, limits, twins)
+            res = translate(sc["scenario"], client, limits, twins, start)
         except LLMUnavailableError as exc:
             print(f"{sc['id']}: LLM unavailable: {exc}")
             row.update(status="unavailable")

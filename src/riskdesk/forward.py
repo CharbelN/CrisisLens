@@ -18,6 +18,7 @@ from typing import Mapping, Protocol
 
 import pandas as pd
 
+from riskdesk.checks.levels import StartLevels
 from riskdesk.checks.moves import HORIZON_DAYS, Limits
 from riskdesk.engine.portfolio import Portfolio, StressResult, apply_moves
 from riskdesk.engine.var import VarResult, historical_var_es
@@ -57,11 +58,12 @@ def run_forward(
     limits: dict[str, Limits],
     changes: pd.DataFrame,
     retriever: Searcher | None = None,
+    start: StartLevels | None = None,
 ) -> ForwardResult:
     """Retrieve twins, translate the text, then calculate. Never raises for an AI problem."""
     twins = retriever.search(text) if retriever is not None else []
     try:
-        tr = translate(text, client, limits, twins)
+        tr = translate(text, client, limits, twins, start)
     except LLMUnavailableError as exc:
         fb = fallback_moves(twins, limits)
         if fb is not None:

@@ -12,6 +12,7 @@ import argparse
 import gradio as gr
 import pandas as pd
 
+from riskdesk.checks.levels import latest_levels
 from riskdesk.checks.moves import HORIZON_DAYS, plausible_limits
 from riskdesk.config import PROJECT_ROOT, load_settings
 from riskdesk.data.market import driver_changes, load_market_data
@@ -38,6 +39,7 @@ def build_app() -> gr.Blocks:
     levels = load_market_data()
     changes = driver_changes(levels, HORIZON_DAYS)
     limits = plausible_limits(levels)
+    start = latest_levels(levels)
     client = GroqClient()
     try:
         retriever = Retriever.load()
@@ -56,7 +58,7 @@ def build_app() -> gr.Blocks:
             portfolio = parse_portfolio(portfolio_df)
             if not (text or "").strip():
                 return outputs(_error("Type a headline or what-if sentence first."), moves_table())
-            result = run_forward(portfolio, text, client, limits, changes, retriever)
+            result = run_forward(portfolio, text, client, limits, changes, retriever, start)
         except ValueError as exc:  # bad portfolio or moves
             return outputs(_error(str(exc)), moves_table())
         moves = result.translation.moves if result.translation and result.translation.moves else None
@@ -107,7 +109,8 @@ def build_app() -> gr.Blocks:
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "
-            f"Gemini backup {'found' if settings.has_gemini else 'not set (optional)'}, {retrieval_note}."
+            f"Gemini backup {'found' if settings.has_gemini else 'not set (optional)'}, {retrieval_note}, "
+            f"starting levels from the latest close in the data ({start.date})."
         )
     return demo
 

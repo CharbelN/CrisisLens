@@ -9,7 +9,7 @@ from typing import Mapping
 
 import pandas as pd
 
-from riskdesk.engine.drivers import DRIVERS, InvalidMovesError
+from riskdesk.engine.drivers import DRIVERS, DRIVERS_BY_ID, InvalidMovesError
 from riskdesk.engine.holdings import HOLDINGS, HOLDINGS_BY_ID
 from riskdesk.engine.portfolio import InvalidPortfolioError
 from riskdesk.forward import ForwardResult
@@ -120,6 +120,13 @@ def summary_markdown(result: ForwardResult) -> str:
         names = {t.id: t.name for t in result.twins}
         cited = ", ".join(f"{names.get(e, e)} ({e})" for e in tr.events_used)
         lines.append(f"**Past events relied on:** {cited}")
+    if tr is not None and tr.stated_levels and tr.moves:
+        parts = []
+        for d_id, level in tr.stated_levels.items():
+            d = DRIVERS_BY_ID[d_id]
+            how = "set by code (the model's move did not match)" if d_id in tr.level_fixes else "checked by code"
+            parts.append(f"{d.label}: stated level {level:g} → move {tr.moves[d_id]:+g} {_unit(d)}, {how}")
+        lines.append("**Levels stated in the scenario** (moves from the latest close in the data): " + "; ".join(parts))
     if tr is not None and tr.reasoning:
         lines.append(f"**Model's reasoning:** {tr.reasoning}")
         cache_note = "from cache" if tr.latency_s == 0 else f"{tr.latency_s:.1f} s"

@@ -3,6 +3,6 @@ Valid on first try,20 / 20,19 / 20
 Fallback used,0,0
 Failed,0,0
 Direction agreement,80% (69/86),80% (69/86)
-Distance to history (lower = closer),6.22 over 18 scenarios,4.82 over 18 scenarios
-Scenarios citing past events,19,18
-Avg tokens per scenario,1102,3537
+Distance to history (lower = closer),7.29 over 18 scenarios,5.52 over 18 scenarios
+Scenarios citing past events,18,18
+Avg tokens per scenario,1208,3849
