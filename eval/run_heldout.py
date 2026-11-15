@@ -22,7 +22,6 @@ is switched off, so every answer comes from the same model. Answers are cached i
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -30,38 +29,12 @@ import pandas as pd
 from riskdesk.checks.moves import default_limits
 from riskdesk.data.library import load_library
 from riskdesk.engine.drivers import DRIVER_IDS, DRIVERS_BY_ID
-from riskdesk.llm.client import MAIN_MODEL, GroqClient, LLMReply, LLMUnavailableError, Messages
+from riskdesk.llm.client import MAIN_MODEL, PacedClient
 from riskdesk.llm.translator import FLAT_BAND, fallback_moves, translate
 from riskdesk.retrieval.index import Retriever
 
 EVAL_DIR = Path(__file__).resolve().parent
-TOKENS_PER_MINUTE = 7000  # below Groq's 8,000 free-tier limit
 APPROACHES = ["no_rag", "rag", "twins_only", "zero"]
-
-
-class PacedClient:
-    """Main model only; waits after each uncached answer so tokens per minute stay under the limit."""
-
-    def __init__(self) -> None:
-        self.inner = GroqClient(fallback_model=None)
-
-    def chat_json(self, messages: Messages) -> LLMReply:
-        for wait in (0, 60, 120):  # on a rate limit, wait and try again
-            time.sleep(wait)
-            try:
-                reply = self.inner.chat_json(messages)
-            except LLMUnavailableError as exc:
-                if "tokens per day" in str(exc).lower():
-                    raise SystemExit("Groq's daily token limit is used up. Answers so far are cached: "
-                                     "run again later and it resumes where it stopped.") from exc
-                if "rate" not in str(exc).lower() and "429" not in str(exc):
-                    raise
-                print(f"   rate-limited, waiting {wait + 60} s")
-                continue
-            if not reply.cached:
-                time.sleep(60 * (reply.prompt_tokens + reply.completion_tokens) / TOKENS_PER_MINUTE)
-            return reply
-        raise LLMUnavailableError("still rate-limited after waiting")
 
 
 def direction(driver: str, move: float) -> str:

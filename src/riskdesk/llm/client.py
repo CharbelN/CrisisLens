@@ -1,11 +1,26 @@
-"""A thin wrapper around the Groq chat API that always asks for JSON and caches answers.
+"""One client for every language-model provider: always asks for JSON, caches every answer.
 
-Why a cache: the free tier allows about 1,000 requests and 200,000 tokens per day.
-Every answer is saved to cache/dev/ under a hash of (model, messages), so asking the
-same question twice costs nothing and returns exactly the same text.
+Groq, OpenRouter and Gemini all offer an OpenAI-compatible endpoint, so a provider is only
+settings (a URL, a key and a model name) and one `openai` SDK does all the calls.
+The client tries the providers in order (default: Groq 120b, Groq 20b, OpenRouter's free
+120b if OPENROUTER_API_KEY is set, Gemini Flash-Lite if GEMINI_API_KEY is set).
 
-Why a fallback model: if the main model hits its rate limit (HTTP 429), the same
-question is sent once to the smaller model instead of failing.
+When it moves on to the next provider:
+- rate limit (HTTP 429), server error (5xx), network failure, or the provider's key is not set.
+Any other error (bad request, wrong key) stops at once with LLMUnavailableError.
+A broken-JSON answer is NOT an outage: Groq rejects it server-side (`json_validate_failed`) and
+returns the bad text, which is handed back so the caller's checks ask the SAME provider again.
+
+Why a cache: the free tiers are small (Groq: about 1,000 requests and 200,000 tokens per day).
+Every answer is saved to cache/dev/ under a hash of (model, messages), so asking the same
+question twice costs nothing and returns exactly the same text. Each record also stores the
+provider and model that produced it.
+
+Demo cache: answers for the demo scenarios are saved in cache/demo/ (committed, read-only for
+the app) and looked up FIRST, so the demo works with no live call (see scripts/build_demo_cache.py).
+
+Evaluations use `pinned_client()` / `PacedClient`, so an answer from another provider never
+slips silently into the measured numbers.
 """
 
 from __future__ import annotations
@@ -13,21 +28,50 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from riskdesk.config import PROJECT_ROOT, load_settings
+from riskdesk.config import PROJECT_ROOT, Settings, load_settings
 
-MAIN_MODEL = "openai/gpt-oss-120b"
-FALLBACK_MODEL = "openai/gpt-oss-20b"
 DEV_CACHE_DIR = PROJECT_ROOT / "cache" / "dev"
+DEMO_CACHE_DIR = PROJECT_ROOT / "cache" / "demo"
 
 Messages = list[dict[str, str]]
 
 
+@dataclass(frozen=True)
+class Provider:
+    """Where to send a question: an OpenAI-compatible endpoint, its key and one model."""
+
+    name: str  # "groq", "openrouter", "gemini"
+    model: str
+    base_url: str
+    key_setting: str  # attribute of Settings that holds the key
+    extra: dict[str, Any] = field(default_factory=dict)  # extra request fields for this provider
+
+    def key(self, settings: Settings) -> str | None:
+        return getattr(settings, self.key_setting)
+
+
+GROQ_URL = "https://api.groq.com/openai/v1"
+OPENROUTER_URL = "https://openrouter.ai/api/v1"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+GROQ_MAIN = Provider("groq", "openai/gpt-oss-120b", GROQ_URL, "groq_api_key")
+GROQ_SMALL = Provider("groq", "openai/gpt-oss-20b", GROQ_URL, "groq_api_key")
+# Same model as Groq's main one, so a switch changes the answers less. Free: about 50 requests/day.
+OPENROUTER_FREE = Provider("openrouter", "openai/gpt-oss-120b:free", OPENROUTER_URL, "openrouter_api_key")
+# Gemini's OpenAI layer is still in beta, so it comes last. Gemini 3 always reasons: keep it short.
+GEMINI_LITE = Provider("gemini", "gemini-flash-lite-latest", GEMINI_URL, "gemini_api_key",
+                       {"reasoning_effort": "low"})
+
+MAIN_MODEL = GROQ_MAIN.model
+FALLBACK_MODEL = GROQ_SMALL.model
+
+
 class LLMUnavailableError(RuntimeError):
-    """Raised when no answer can be obtained (no key, network down, both models limited)."""
+    """Raised when no answer can be obtained (no key, network down, every provider limited)."""
 
 
 @dataclass(frozen=True)
@@ -38,6 +82,7 @@ class LLMReply:
     completion_tokens: int
     latency_s: float
     cached: bool
+    provider: str = ""
 
 
 def cache_key(model: str, messages: Messages) -> str:
@@ -45,120 +90,196 @@ def cache_key(model: str, messages: Messages) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-class GroqClient:
-    """Ask a Groq chat model for a JSON answer.
+def default_providers(settings: Settings | None = None) -> list[Provider]:
+    """Groq first, then the optional backups whose key is set."""
+    settings = settings or load_settings()
+    providers = [GROQ_MAIN, GROQ_SMALL]
+    if settings.has_openrouter:
+        providers.append(OPENROUTER_FREE)
+    if settings.has_gemini:
+        providers.append(GEMINI_LITE)
+    return providers
 
-    `sdk` can be passed in tests to replace the real Groq SDK object.
+
+class LLMClient:
+    """Ask the providers in order for a JSON answer, from cache if possible.
+
+    `sdk` can be passed in tests: one fake object used for every provider.
     """
 
     def __init__(
         self,
+        providers: list[Provider] | None = None,
         *,
-        model: str = MAIN_MODEL,
-        fallback_model: str | None = FALLBACK_MODEL,
         cache_dir: Path | None = DEV_CACHE_DIR,
+        demo_dir: Path | None = DEMO_CACHE_DIR,
         sdk: Any = None,
+        settings: Settings | None = None,
     ) -> None:
-        self.model = model
-        self.fallback_model = fallback_model
-        self.cache_dir = cache_dir
-        self._sdk = sdk
+        self.providers = providers if providers is not None else default_providers(settings)
+        self.cache_dir = cache_dir  # new answers are saved here
+        self.demo_dir = demo_dir  # read first, never written by the app
+        self._fake_sdk = sdk
+        self._settings = settings
+        self._sdks: dict[tuple[str, str], Any] = {}
 
-    def _get_sdk(self) -> Any:
-        if self._sdk is None:
-            settings = load_settings()
-            if not settings.has_groq:
-                raise LLMUnavailableError("GROQ_API_KEY is not set. Add it to the .env file.")
-            from groq import Groq
+    def _get_sdk(self, provider: Provider) -> Any:
+        if self._fake_sdk is not None:
+            return self._fake_sdk
+        if self._settings is None:
+            self._settings = load_settings()
+        key = provider.key(self._settings)
+        if key is None:
+            raise LLMUnavailableError(f"{provider.key_setting.upper()} is not set.")
+        cache_id = (provider.base_url, key)
+        if cache_id not in self._sdks:
+            from openai import OpenAI
 
-            self._sdk = Groq(api_key=settings.groq_api_key)
-        return self._sdk
+            # max_retries=0: on a limit we move to the next provider instead of waiting.
+            self._sdks[cache_id] = OpenAI(api_key=key, base_url=provider.base_url, max_retries=0)
+        return self._sdks[cache_id]
 
     # --- cache -----------------------------------------------------------
-    def _cache_path(self, model: str, messages: Messages) -> Path | None:
-        if self.cache_dir is None:
-            return None
-        return self.cache_dir / f"{cache_key(model, messages)}.json"
-
     def _read_cache(self, model: str, messages: Messages) -> LLMReply | None:
-        path = self._cache_path(model, messages)
-        if path is None or not path.exists():
-            return None
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return LLMReply(
-            text=data["text"],
-            model=data["model"],
-            prompt_tokens=data.get("prompt_tokens", 0),
-            completion_tokens=data.get("completion_tokens", 0),
-            latency_s=0.0,
-            cached=True,
-        )
+        for folder in (self.demo_dir, self.cache_dir):
+            if folder is None:
+                continue
+            path = folder / f"{cache_key(model, messages)}.json"
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                return LLMReply(
+                    text=data["text"],
+                    model=data["model"],
+                    prompt_tokens=data.get("prompt_tokens", 0),
+                    completion_tokens=data.get("completion_tokens", 0),
+                    latency_s=0.0,
+                    cached=True,
+                    provider=data.get("provider", "groq"),  # records from before the switch are Groq's
+                )
+        return None
 
-    def _write_cache(self, messages: Messages, reply: LLMReply) -> None:
-        path = self._cache_path(reply.model, messages)
-        if path is None:
+    def _write_cache(self, messages: Messages, reply: LLMReply, folder: Path | None = None) -> None:
+        folder = folder or self.cache_dir
+        if folder is None:
             return
-        path.parent.mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True)
         record = {
+            "provider": reply.provider,
             "model": reply.model,
             "messages": messages,
             "text": reply.text,
             "prompt_tokens": reply.prompt_tokens,
             "completion_tokens": reply.completion_tokens,
         }
+        path = folder / f"{cache_key(reply.model, messages)}.json"
         path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # --- calls -----------------------------------------------------------
-    def _call(self, model: str, messages: Messages) -> LLMReply:
-        sdk = self._get_sdk()
+    def _call(self, provider: Provider, messages: Messages) -> LLMReply:
+        sdk = self._get_sdk(provider)
         start = time.perf_counter()
         response = sdk.chat.completions.create(
-            model=model,
+            model=provider.model,
             messages=messages,
             temperature=0,
             response_format={"type": "json_object"},
+            **provider.extra,
         )
         latency = time.perf_counter() - start
         usage = getattr(response, "usage", None)
         return LLMReply(
             text=response.choices[0].message.content or "",
-            model=model,
+            model=provider.model,
             prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
             completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
             latency_s=latency,
             cached=False,
+            provider=provider.name,
         )
 
     def chat_json(self, messages: Messages) -> LLMReply:
-        """Return the model's answer text (expected to be JSON), from cache if possible."""
-        models = [self.model] + ([self.fallback_model] if self.fallback_model else [])
-        for model in models:
-            hit = self._read_cache(model, messages)
+        """Return the answer text (expected to be JSON) from the first provider that gives one."""
+        for provider in self.providers:
+            hit = self._read_cache(provider.model, messages)
             if hit is not None:
                 return hit
 
-        last_error: Exception | None = None
-        for model in models:
+        problems: list[str] = []
+        for provider in self.providers:
+            label = f"{provider.name} {provider.model}"
             try:
-                reply = self._call(model, messages)
-            except LLMUnavailableError:
-                raise
-            except Exception as exc:  # noqa: BLE001 - SDK raises many error types
-                last_error = exc
-                if _is_rate_limit(exc):
-                    continue  # try the fallback model
+                reply = self._call(provider, messages)
+            except LLMUnavailableError as exc:  # key not set: try the next provider
+                problems.append(f"{label}: {exc}")
+                continue
+            except Exception as exc:  # noqa: BLE001 - the SDK raises many error types
                 if _is_invalid_json(exc):
-                    # The model answered, but not with valid JSON (Groq rejects it server-side). That is a
-                    # bad answer, not an outage: return it uncached so the caller's checks ask again.
-                    return LLMReply(_failed_generation(exc), model, 0, 0, 0.0, False)
-                raise LLMUnavailableError(f"Groq request failed: {exc}") from exc
+                    # The model answered, but not with valid JSON. That is a bad answer, not an outage:
+                    # return it uncached so the caller's checks ask this same provider again.
+                    return LLMReply(_failed_generation(exc), provider.model, 0, 0, 0.0, False, provider.name)
+                if _should_switch(exc):
+                    problems.append(f"{label}: {exc}")
+                    continue
+                raise LLMUnavailableError(f"{label} request failed: {exc}") from exc
             self._write_cache(messages, reply)
             return reply
-        raise LLMUnavailableError(f"All models are rate-limited: {last_error}")
+        raise LLMUnavailableError("No provider could answer. " + " | ".join(problems))
 
 
-def _is_rate_limit(exc: Exception) -> bool:
-    return getattr(exc, "status_code", None) == 429 or type(exc).__name__ == "RateLimitError"
+def default_client() -> LLMClient:
+    """For the app: Groq, then every backup whose key is set."""
+    return LLMClient()
+
+
+def pinned_client(*providers: Provider) -> LLMClient:
+    """For evaluations: only the providers named (default Groq 120b), so no silent switch."""
+    return LLMClient(list(providers) or [GROQ_MAIN])
+
+
+def save_reply(folder: Path, messages: Messages, reply: LLMReply) -> None:
+    """Save one answer into a cache folder (used to build the demo cache)."""
+    LLMClient([], cache_dir=folder, demo_dir=None)._write_cache(messages, reply)
+
+
+class PacedClient:
+    """Groq 120b only; waits after each new answer so tokens per minute stay under the free limit.
+
+    For long batch runs (evaluations, building the demo cache), not for the app.
+    """
+
+    def __init__(self, tokens_per_minute: int = 7000, inner: LLMClient | None = None) -> None:
+        self.inner = inner or pinned_client(GROQ_MAIN)
+        self.tokens_per_minute = tokens_per_minute
+
+    def chat_json(self, messages: Messages) -> LLMReply:
+        for wait in (0, 60, 120):  # on a rate limit, wait and try again
+            time.sleep(wait)
+            try:
+                reply = self.inner.chat_json(messages)
+            except LLMUnavailableError as exc:
+                if "tokens per day" in str(exc).lower():
+                    raise SystemExit("Groq's daily token limit is used up. Answers so far are cached: "
+                                     "run again later and it resumes where it stopped.") from exc
+                if "rate" not in str(exc).lower() and "429" not in str(exc):
+                    raise
+                print(f"   rate-limited, waiting {wait + 60} s")
+                continue
+            if not reply.cached:
+                time.sleep(60 * (reply.prompt_tokens + reply.completion_tokens) / self.tokens_per_minute)
+            return reply
+        raise LLMUnavailableError("still rate-limited after waiting")
+
+
+# --- error sorting -----------------------------------------------------------
+_NETWORK_ERRORS = {"APIConnectionError", "APITimeoutError", "ConnectError", "ReadTimeout"}
+
+
+def _should_switch(exc: Exception) -> bool:
+    """Rate limit, server error or network failure: worth trying the next provider."""
+    status = getattr(exc, "status_code", None)
+    if status == 429 or (isinstance(status, int) and status >= 500):
+        return True
+    return type(exc).__name__ in _NETWORK_ERRORS or isinstance(exc, (ConnectionError, TimeoutError))
 
 
 def _is_invalid_json(exc: Exception) -> bool:
@@ -168,7 +289,7 @@ def _is_invalid_json(exc: Exception) -> bool:
 def _failed_generation(exc: Exception) -> str:
     body = getattr(exc, "body", None)
     if isinstance(body, dict):
-        err = body.get("error", body)
+        err = body.get("error", body)  # the openai SDK already unwraps "error"; others may not
         if isinstance(err, dict):
             return str(err.get("failed_generation") or "")
     return ""

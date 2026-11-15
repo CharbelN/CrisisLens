@@ -4,7 +4,8 @@ Reads API keys and switches from environment variables, which are loaded
 from a local `.env` file if one exists. The `.env` file is never committed.
 
 - GROQ_API_KEY   : main language-model engine (needed from build stage 3).
-- GEMINI_API_KEY : optional backup engine. Missing is fine, never an error.
+- OPENROUTER_API_KEY : optional backup (same gpt-oss-120b model, free). Missing is fine.
+- GEMINI_API_KEY : optional last backup engine. Missing is fine, never an error.
 - RISKDESK_SHARE : "true" to create a temporary public Gradio link. Off by default.
 """
 
@@ -39,6 +40,7 @@ class Settings:
     groq_api_key: str | None
     gemini_api_key: str | None
     share_enabled: bool
+    openrouter_api_key: str | None = None
 
     @property
     def has_groq(self) -> bool:
@@ -47,6 +49,10 @@ class Settings:
     @property
     def has_gemini(self) -> bool:
         return self.gemini_api_key is not None
+
+    @property
+    def has_openrouter(self) -> bool:
+        return self.openrouter_api_key is not None
 
 
 def load_settings(env: dict[str, str] | None = None, *, read_dotenv: bool = True) -> Settings:
@@ -62,4 +68,5 @@ def load_settings(env: dict[str, str] | None = None, *, read_dotenv: bool = True
         groq_api_key=_clean(env.get("GROQ_API_KEY")),
         gemini_api_key=_clean(env.get("GEMINI_API_KEY")),
         share_enabled=parse_bool(env.get("RISKDESK_SHARE")),
+        openrouter_api_key=_clean(env.get("OPENROUTER_API_KEY")),
     )

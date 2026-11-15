@@ -20,7 +20,7 @@ from riskdesk.checks.levels import LEVEL_TOLERANCE, implied_move, latest_levels
 from riskdesk.checks.moves import default_limits
 from riskdesk.data.market import load_market_data
 from riskdesk.engine.drivers import DRIVERS_BY_ID
-from riskdesk.llm.client import GroqClient, LLMUnavailableError
+from riskdesk.llm.client import GROQ_MAIN, GROQ_SMALL, LLMUnavailableError, pinned_client
 from riskdesk.llm.translator import translate
 from riskdesk.retrieval.index import Retriever
 
@@ -35,7 +35,7 @@ def main() -> None:
 
     start = latest_levels(load_market_data())
     scenarios = pd.read_csv(EVAL_DIR / "level_scenarios.csv", dtype=str, keep_default_na=False)
-    limits, client, retriever = default_limits(), GroqClient(), Retriever.load()
+    limits, client, retriever = default_limits(), pinned_client(GROQ_MAIN, GROQ_SMALL)  # Groq only: the saved results use both, Retriever.load()
 
     rows = []
     for _, sc in scenarios.iterrows():

@@ -17,10 +17,11 @@ from riskdesk.checks.levels import latest_levels
 from riskdesk.data.library import load_library
 from riskdesk.engine.reverse import MAX_TARGET_PCT
 from riskdesk.checks.moves import HORIZON_DAYS, plausible_limits
-from riskdesk.config import PROJECT_ROOT, load_settings
+from riskdesk.config import load_settings
 from riskdesk.data.market import driver_changes, load_market_data
 from riskdesk.forward import ForwardResult, run_forward, run_manual
-from riskdesk.llm.client import GroqClient
+from riskdesk.demo import DEMO_TARGETS, sample_headlines
+from riskdesk.llm.client import DEMO_CACHE_DIR, default_client
 from riskdesk.llm.memo import write_memo
 from riskdesk.retrieval.index import Retriever, StaleIndexError
 from riskdesk.ui import (
@@ -32,7 +33,6 @@ DISCLAIMER = (
     "**These are AI estimates, not forecasts and not investment advice.** "
     "Market moves are the model's educated guesses; all money figures are calculated by plain code."
 )
-SAMPLE_IDS = ["S01", "S02", "S03", "S06", "S10"]
 
 
 def _error(message: str) -> ForwardResult:
@@ -46,15 +46,15 @@ def build_app() -> gr.Blocks:
     limits = plausible_limits(levels)
     start = latest_levels(levels)
     library = load_library()
-    client = GroqClient()
+    client = default_client()
     try:
         retriever = Retriever.load()
         retrieval_note = "historical twins on"
     except (FileNotFoundError, StaleIndexError) as exc:
         retriever = None
         retrieval_note = f"historical twins OFF ({exc})"
-    scenarios = pd.read_csv(PROJECT_ROOT / "eval" / "scenarios.csv", dtype=str, keep_default_na=False)
-    samples = scenarios.set_index("id").loc[SAMPLE_IDS, "scenario"].tolist()
+    samples = sample_headlines()
+    n_demo = len(list(DEMO_CACHE_DIR.glob("*.json")))
 
     def outputs(result: ForwardResult, moves_df: pd.DataFrame, text: str = "", plant: bool = False):
         memo = write_memo(result, text, client, plant) if result.stress is not None else None
@@ -128,7 +128,7 @@ def build_app() -> gr.Blocks:
             gr.Markdown("Code searches history for sets of market moves that lose exactly this much, then the AI "
                         "writes each one as a short news story. Every number in a story is checked against the moves.")
             with gr.Row():
-                target = gr.Number(value=20, label="Target loss (%)", minimum=0.1, maximum=MAX_TARGET_PCT)
+                target = gr.Number(value=DEMO_TARGETS[0], label="Target loss (%)", minimum=0.1, maximum=MAX_TARGET_PCT)
                 find = gr.Button("Find scenarios", variant="primary")
             back_summary = gr.Markdown()
             back_table = gr.Dataframe(label=f"Scenarios: market moves over {HORIZON_DAYS} trading days",
@@ -137,8 +137,10 @@ def build_app() -> gr.Blocks:
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "
-            f"Gemini backup {'found' if settings.has_gemini else 'not set (optional)'}, {retrieval_note}, "
-            f"starting levels from the latest close in the data ({start.date})."
+            f"backups: OpenRouter {'on' if settings.has_openrouter else 'off'}, "
+            f"Gemini {'on' if settings.has_gemini else 'off'} (optional), {retrieval_note}, "
+            f"starting levels from the latest close in the data ({start.date}), "
+            f"{n_demo} saved demo answer(s) (used first, so the samples work offline with the sample portfolio)."
         )
     return demo
 
