@@ -1,7 +1,7 @@
 [project]
 name = "riskdesk"
 version = "0.1.0"
-description = "Risk Desk in a Box: a personal GenAI risk manager for an ordinary investor."
+description = "CrisisLens: a personal GenAI risk manager for an ordinary investor."
 authors = [
     { name = "Charbel Nassar", email = "charbelpnassar@gmail.com" }
 ]

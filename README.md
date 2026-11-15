@@ -1,4 +1,4 @@
-# Risk Desk in a Box
+# CrisisLens
 
 A personal risk manager for an ordinary investor, built as the final project for a university Generative AI course.
 

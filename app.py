@@ -1,4 +1,4 @@
-"""Risk Desk in a Box: Gradio entry point.
+"""CrisisLens: Gradio entry point.
 
 Run locally:              uv run python app.py
 With a public demo link:  uv run python app.py --share
@@ -94,8 +94,8 @@ def build_app() -> gr.Blocks:
             result = BackwardResult("error", str(exc), None, None)
         return backward_markdown(result), scenarios_table(result)
 
-    with gr.Blocks(title="Risk Desk in a Box") as demo:
-        gr.Markdown("# Risk Desk in a Box")
+    with gr.Blocks(title="CrisisLens") as demo:
+        gr.Markdown("# CrisisLens")
         gr.Markdown(DISCLAIMER)
         portfolio = gr.Dataframe(value=portfolio_table(), label="Your portfolio (used by both tabs)", interactive=True)
         with gr.Tab("Forward: what does this news do to me?"):
@@ -153,7 +153,7 @@ def build_app() -> gr.Blocks:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run Risk Desk in a Box.")
+    parser = argparse.ArgumentParser(description="Run CrisisLens.")
     parser.add_argument("--share", action="store_true", help="Create a temporary public Gradio link.")
     args = parser.parse_args()
 
