@@ -13,7 +13,10 @@ from riskdesk.checks.moves import HORIZON_DAYS
 from riskdesk.engine.drivers import DRIVERS, DRIVERS_BY_ID, InvalidMovesError
 from riskdesk.engine.holdings import HOLDINGS, HOLDINGS_BY_ID
 from riskdesk.engine.portfolio import InvalidPortfolioError
+from riskdesk.backward import BackwardResult
+from riskdesk.engine.reverse import ReverseScenario
 from riskdesk.forward import ForwardResult
+from riskdesk.llm.stories import LETTERS
 from riskdesk.llm.memo import SECTIONS, Memo
 from riskdesk.llm.translator import STRONG_MATCH
 
@@ -107,6 +110,53 @@ def twins_table(result: ForwardResult) -> pd.DataFrame:
 
 def money(x: float) -> str:
     return f"${x:,.0f}"
+
+
+def how_found(sc: ReverseScenario) -> str:
+    if sc.kind == "most_likely":
+        held = f" ({', '.join(DRIVERS_BY_ID[d].label for d in sc.held)} held at its limit)" if sc.held else ""
+        return "Most likely moves (formula)" + held
+    return f"Real {HORIZON_DAYS} days to {sc.window_end}, × {sc.scale:g}"
+
+
+def scenarios_table(result: BackwardResult) -> pd.DataFrame:
+    cols = (["Scenario", "How it was found", "Loss (USD)", "Loss (%)", "More unusual than (% of past months)",
+             "Closest past event"] + [f"{d.label} ({_unit(d)})" for d in DRIVERS])
+    if result.reverse is None:
+        return pd.DataFrame(columns=cols)
+    rows = []
+    for letter, sc in zip(LETTERS, result.reverse.scenarios):
+        match = f"{sc.match.name} ({sc.match.date})" if sc.match else ""
+        rows.append([letter, how_found(sc), round(-sc.stress.pnl, 2), round(-sc.stress.pnl_pct, 2),
+                     round(sc.rarer_than * 100, 1), match]
+                    + ["n/a" if sc.moves[d.id] is None else f"{sc.moves[d.id]:+g}" for d in DRIVERS])
+    return pd.DataFrame(rows, columns=cols)
+
+
+def backward_markdown(result: BackwardResult) -> str:
+    icon = {"ok": "✅", "no_stories": "🔁"}.get(result.status, "⚠️")
+    lines = [f"{icon} {result.message}"]
+    rev = result.reverse
+    if rev is None or not rev.scenarios:
+        return "\n\n".join(lines)
+    target_usd = result.start_value * rev.target_pct / 100
+    lines.append(f"### Losing {rev.target_pct:g}% = {money(target_usd)} of a {money(result.start_value)} portfolio "
+                 f"over {HORIZON_DAYS} trading days")
+    lines.append(f"Code searched {rev.n_windows:,} past windows of {HORIZON_DAYS} trading days ({rev.first_date} to "
+                 f"{rev.last_date}). \"More unusual than\" compares each set of moves with those windows: "
+                 "99% means only 1 past month in 100 was as extreme.")
+    lines += [f"<small>{n}</small>" for n in rev.notes]
+    st = result.stories
+    if st is not None:
+        for letter, sc in zip(LETTERS, rev.scenarios):
+            story = st.stories.get(letter)
+            if story is None:
+                lines.append(f"**{letter}.** *(no story: {'it failed the check twice' if letter in st.dropped else 'not written'})*")
+            else:
+                lines.append(f"**{letter}. {story.headline}**  \n{story.text}")
+        lines.append(f"<small>{st.note} Stories are hypothetical; every number in them is a move from the table, "
+                     "checked by code.</small>")
+    return "\n\n".join(lines)
 
 
 def memo_markdown(memo: Memo | None) -> str:

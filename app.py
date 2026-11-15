@@ -12,7 +12,10 @@ import argparse
 import gradio as gr
 import pandas as pd
 
+from riskdesk.backward import BackwardResult, run_backward
 from riskdesk.checks.levels import latest_levels
+from riskdesk.data.library import load_library
+from riskdesk.engine.reverse import MAX_TARGET_PCT
 from riskdesk.checks.moves import HORIZON_DAYS, plausible_limits
 from riskdesk.config import PROJECT_ROOT, load_settings
 from riskdesk.data.market import driver_changes, load_market_data
@@ -21,7 +24,7 @@ from riskdesk.llm.client import GroqClient
 from riskdesk.llm.memo import write_memo
 from riskdesk.retrieval.index import Retriever, StaleIndexError
 from riskdesk.ui import (
-    holdings_table, memo_markdown, moves_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown,
+    backward_markdown, holdings_table, memo_markdown, moves_table, scenarios_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown,
     twins_table,
 )
 
@@ -42,6 +45,7 @@ def build_app() -> gr.Blocks:
     changes = driver_changes(levels, HORIZON_DAYS)
     limits = plausible_limits(levels)
     start = latest_levels(levels)
+    library = load_library()
     client = GroqClient()
     try:
         retriever = Retriever.load()
@@ -74,23 +78,30 @@ def build_app() -> gr.Blocks:
             return outputs(_error(str(exc)), moves_df)[:4]
         return outputs(result, moves_df, text, plant)[:4]  # keep the twins from the last Run on screen
 
+    def on_find(portfolio_df, target_pct):
+        try:
+            portfolio = parse_portfolio(portfolio_df)
+            result = run_backward(portfolio, float(target_pct or 0), changes, limits, library, client)
+        except ValueError as exc:  # bad portfolio
+            result = BackwardResult("error", str(exc), None, None)
+        return backward_markdown(result), scenarios_table(result)
+
     with gr.Blocks(title="Risk Desk in a Box") as demo:
         gr.Markdown("# Risk Desk in a Box")
         gr.Markdown(DISCLAIMER)
+        portfolio = gr.Dataframe(value=portfolio_table(), label="Your portfolio (used by both tabs)", interactive=True)
         with gr.Tab("Forward: what does this news do to me?"):
+            headline = gr.Textbox(
+                label="Headline or what-if sentence",
+                placeholder="Oil jumps to $150 as a Gulf shipping route closes",
+                lines=2,
+            )
+            gr.Markdown("Samples:")
             with gr.Row():
-                with gr.Column(scale=2):
-                    portfolio = gr.Dataframe(value=portfolio_table(), label="Your portfolio", interactive=True)
-                with gr.Column(scale=3):
-                    headline = gr.Textbox(
-                        label="Headline or what-if sentence",
-                        placeholder="Oil jumps to $150 as a Gulf shipping route closes",
-                        lines=2,
-                    )
-                    gr.Markdown("Samples:")
-                    sample_buttons = [gr.Button(s, size="sm") for s in samples]
-                    run = gr.Button("Run", variant="primary")
-                    plant = gr.Checkbox(label="Demo: plant a wrong number in the memo's first draft", value=False)
+                sample_buttons = [gr.Button(s, size="sm") for s in samples]
+            with gr.Row():
+                run = gr.Button("Run", variant="primary")
+                plant = gr.Checkbox(label="Demo: plant a wrong number in the memo's first draft", value=False)
             summary = gr.Markdown()
             with gr.Row():
                 moves = gr.Dataframe(
@@ -112,6 +123,17 @@ def build_app() -> gr.Blocks:
             run.click(on_run, inputs=[portfolio, headline, plant], outputs=run_out)
             headline.submit(on_run, inputs=[portfolio, headline, plant], outputs=run_out)
             recalc.click(on_recalc, inputs=[portfolio, moves, headline, plant], outputs=run_out[:4])
+
+        with gr.Tab("Backward: what would make me lose X%?"):
+            gr.Markdown("Code searches history for sets of market moves that lose exactly this much, then the AI "
+                        "writes each one as a short news story. Every number in a story is checked against the moves.")
+            with gr.Row():
+                target = gr.Number(value=20, label="Target loss (%)", minimum=0.1, maximum=MAX_TARGET_PCT)
+                find = gr.Button("Find scenarios", variant="primary")
+            back_summary = gr.Markdown()
+            back_table = gr.Dataframe(label=f"Scenarios: market moves over {HORIZON_DAYS} trading days",
+                                      interactive=False)
+            find.click(on_find, inputs=[portfolio, target], outputs=[back_summary, back_table])
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "
