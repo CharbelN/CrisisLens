@@ -18,9 +18,11 @@ from riskdesk.config import PROJECT_ROOT, load_settings
 from riskdesk.data.market import driver_changes, load_market_data
 from riskdesk.forward import ForwardResult, run_forward, run_manual
 from riskdesk.llm.client import GroqClient
+from riskdesk.llm.memo import write_memo
 from riskdesk.retrieval.index import Retriever, StaleIndexError
 from riskdesk.ui import (
-    holdings_table, moves_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown, twins_table,
+    holdings_table, memo_markdown, moves_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown,
+    twins_table,
 )
 
 DISCLAIMER = (
@@ -50,10 +52,11 @@ def build_app() -> gr.Blocks:
     scenarios = pd.read_csv(PROJECT_ROOT / "eval" / "scenarios.csv", dtype=str, keep_default_na=False)
     samples = scenarios.set_index("id").loc[SAMPLE_IDS, "scenario"].tolist()
 
-    def outputs(result: ForwardResult, moves_df: pd.DataFrame):
-        return summary_markdown(result), moves_df, holdings_table(result), twins_table(result)
+    def outputs(result: ForwardResult, moves_df: pd.DataFrame, text: str = "", plant: bool = False):
+        memo = write_memo(result, text, client, plant) if result.stress is not None else None
+        return summary_markdown(result), moves_df, holdings_table(result), memo_markdown(memo), twins_table(result)
 
-    def on_run(portfolio_df, text):
+    def on_run(portfolio_df, text, plant):
         try:
             portfolio = parse_portfolio(portfolio_df)
             if not (text or "").strip():
@@ -62,14 +65,14 @@ def build_app() -> gr.Blocks:
         except ValueError as exc:  # bad portfolio or moves
             return outputs(_error(str(exc)), moves_table())
         moves = result.translation.moves if result.translation and result.translation.moves else None
-        return outputs(result, moves_table(moves))
+        return outputs(result, moves_table(moves), text, plant)
 
-    def on_recalc(portfolio_df, moves_df):
+    def on_recalc(portfolio_df, moves_df, text, plant):
         try:
             result = run_manual(parse_portfolio(portfolio_df), parse_moves(moves_df), changes)
         except ValueError as exc:
-            return outputs(_error(str(exc)), moves_df)[:3]
-        return outputs(result, moves_df)[:3]  # keep the twins from the last Run on screen
+            return outputs(_error(str(exc)), moves_df)[:4]
+        return outputs(result, moves_df, text, plant)[:4]  # keep the twins from the last Run on screen
 
     with gr.Blocks(title="Risk Desk in a Box") as demo:
         gr.Markdown("# Risk Desk in a Box")
@@ -87,6 +90,7 @@ def build_app() -> gr.Blocks:
                     gr.Markdown("Samples:")
                     sample_buttons = [gr.Button(s, size="sm") for s in samples]
                     run = gr.Button("Run", variant="primary")
+                    plant = gr.Checkbox(label="Demo: plant a wrong number in the memo's first draft", value=False)
             summary = gr.Markdown()
             with gr.Row():
                 moves = gr.Dataframe(
@@ -96,6 +100,7 @@ def build_app() -> gr.Blocks:
                 )
                 per_holding = gr.Dataframe(label="Result per holding", interactive=False)
             recalc = gr.Button("Recalculate with these moves")
+            memo = gr.Markdown()
             twins = gr.Dataframe(
                 label=f"Historical twins: most similar past events and what markets actually did (first day / {HORIZON_DAYS} trading days)",
                 interactive=False,
@@ -103,9 +108,10 @@ def build_app() -> gr.Blocks:
 
             for btn, text in zip(sample_buttons, samples):
                 btn.click(lambda t=text: t, outputs=headline)
-            run.click(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding, twins])
-            headline.submit(on_run, inputs=[portfolio, headline], outputs=[summary, moves, per_holding, twins])
-            recalc.click(on_recalc, inputs=[portfolio, moves], outputs=[summary, moves, per_holding])
+            run_out = [summary, moves, per_holding, memo, twins]
+            run.click(on_run, inputs=[portfolio, headline, plant], outputs=run_out)
+            headline.submit(on_run, inputs=[portfolio, headline, plant], outputs=run_out)
+            recalc.click(on_recalc, inputs=[portfolio, moves, headline, plant], outputs=run_out[:4])
 
         gr.Markdown(
             f"Engine status: Groq key {'found' if settings.has_groq else 'missing (type moves by hand)'}, "

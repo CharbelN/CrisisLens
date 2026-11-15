@@ -14,6 +14,7 @@ from riskdesk.engine.drivers import DRIVERS, DRIVERS_BY_ID, InvalidMovesError
 from riskdesk.engine.holdings import HOLDINGS, HOLDINGS_BY_ID
 from riskdesk.engine.portfolio import InvalidPortfolioError
 from riskdesk.forward import ForwardResult
+from riskdesk.llm.memo import SECTIONS, Memo
 from riskdesk.llm.translator import STRONG_MATCH
 
 SAMPLE_PORTFOLIO = {"us_stocks": 25_000, "us_bonds": 10_000, "gold": 5_000, "oil": 0, "bitcoin": 5_000, "cash": 5_000}
@@ -106,6 +107,20 @@ def twins_table(result: ForwardResult) -> pd.DataFrame:
 
 def money(x: float) -> str:
     return f"${x:,.0f}"
+
+
+def memo_markdown(memo: Memo | None) -> str:
+    if memo is None:
+        return ""
+    lines = ["## Risk memo"] + [f"**{title}.** {memo.sections[key]}" for key, title in SECTIONS]
+    lines.append(f"*{memo.caveat}*")
+    check = f"{memo.n_numbers} number(s) checked against the calculation. " if memo.source == "ai" else ""
+    lines.append(f"<small>{'✅' if memo.source == 'ai' else '🔁'} {memo.note} {check}</small>")
+    if memo.planted:
+        problems = "; ".join(memo.problems[0]) if memo.problems else ""
+        lines.append(f"<small>🧪 Demo: a wrong number was planted in the first draft ({memo.planted}). "
+                     f"The checker found: {problems}</small>")
+    return "\n\n".join(lines)
 
 
 def summary_markdown(result: ForwardResult) -> str:
