@@ -108,3 +108,15 @@ def test_llm_down_uses_strong_twins():
     res = run_forward(PORTFOLIO, "Oil up", FakeClient(error=LLMUnavailableError("down")), LIMITS, CHANGES, TwoTwins())
     assert res.status == "fallback" and res.stress.pnl == pytest.approx(-1000)
     assert ui.twins_table(res).iloc[0]["Used by AI"] == "yes"
+
+
+def test_twins_table_shows_first_day_and_20_days():
+    from riskdesk.retrieval.index import Twin
+
+    zero = {d: 0.0 for d in DRIVER_IDS}
+    t = Twin("E1", "Oil shock", "2020-01-01", "d", "market", 0.9, zero | {"oil": 30.0, "btc": None}, zero | {"oil": 5.5, "btc": None})
+    res = run_manual(PORTFOLIO, {}, CHANGES)
+    res.twins = [t]
+    row = ui.twins_table(res).iloc[0]
+    assert row["Oil (Brent) (%): first day / 20 days"] == "+5.5 / +30"
+    assert row["Bitcoin (%): first day / 20 days"] == "n/a" and row["Strong match"] == "yes"

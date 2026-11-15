@@ -59,6 +59,7 @@ class TranslationResult:
     model: str = ""
     stated_levels: dict[str, float] = field(default_factory=dict)  # levels the scenario states (driver -> level)
     level_fixes: list[str] = field(default_factory=list)  # drivers whose move code set from a stated level
+    steps: int = 1  # 2 with past events: directions first, then sizes (each step is one or more attempts)
 
     @property
     def ok(self) -> bool:
@@ -316,7 +317,8 @@ def translate(
         raise ValueError("Scenario text is empty.")
 
     twins = list(twins or [])
-    result = TranslationResult(status="failed", moves=None, reasoning="", events_used=[], attempts=0)
+    result = TranslationResult(status="failed", moves=None, reasoning="", events_used=[], attempts=0,
+                               steps=2 if twins else 1)
     if not twins:
         _ask(client, build_messages(text, limits, start=start), limits, result, start=start, text=text)
         return result

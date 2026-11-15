@@ -110,10 +110,12 @@ class Retriever:
         lib = library if library is not None else load_library()
         return cls(lib, data["vectors"], [str(i) for i in data["ids"]], embedder)
 
-    def search(self, text: str, k: int = TOP_K) -> list[Twin]:
+    def search(self, text: str, k: int = TOP_K, exclude: set[str] | frozenset[str] = frozenset()) -> list[Twin]:
+        """Top-k most similar events. `exclude`: ids to hide (used by the held-out evaluation)."""
         q = _normalise(self.embedder.query(text))
         scores = self.vectors @ q
-        order = np.argsort(-scores)[:k]
+        visible = ~self.library["id"].astype(str).isin(exclude).to_numpy()
+        order = [i for i in np.argsort(-scores) if visible[i]][:k]
         out = []
         for i in order:
             row = self.library.iloc[int(i)]

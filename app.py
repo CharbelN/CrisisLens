@@ -97,7 +97,7 @@ def build_app() -> gr.Blocks:
                 per_holding = gr.Dataframe(label="Result per holding", interactive=False)
             recalc = gr.Button("Recalculate with these moves")
             twins = gr.Dataframe(
-                label=f"Historical twins: most similar past events and what markets actually did over {HORIZON_DAYS} trading days",
+                label=f"Historical twins: most similar past events and what markets actually did (first day / {HORIZON_DAYS} trading days)",
                 interactive=False,
             )
 

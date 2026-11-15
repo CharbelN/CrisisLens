@@ -1,21 +1,37 @@
-id,scenario,expected,top4,top1_similarity,first_hit_rank,hit_at_4,reciprocal_rank
-S01,Oil jumps to $150 as a Gulf shipping route closes,E011;E027;E071;E004;E121,E011;E027;E054;E002,0.669,1.0,True,1.0
-S02,A large US regional bank collapses after a run on deposits,E102;E104;E103;E007,E102;E104;E022;E014,0.776,1.0,True,1.0
-S03,The Federal Reserve unexpectedly raises rates by 1 percentage point,E097;E094;E052;E066,E052;E094;E097;E066,0.804,1.0,True,1.0
-S04,The Federal Reserve makes a surprise emergency rate cut of 0.75 points,E009;E076;E078;E015,E009;E008;E017;E015,0.802,1.0,True,1.0
-S05,A new pandemic forces lockdowns across Europe and North America,E075;E074;E078;E091,E075;E074;E076;E045,0.722,1.0,True,1.0
-S06,The world's largest crypto exchange freezes withdrawals and files for bankruptcy,E100;E044;E056;E096,E123;E044;E118;E100,0.749,2.0,True,0.5
-S07,US inflation comes in at 7% far above expectations,E090;E097;E062,E090;E101;E097;E108,0.77,1.0,True,1.0
-S08,OPEC agrees a surprise large production increase,E046;E054;E077,E058;E046;E011;E030,0.763,2.0,True,0.5
-S09,US Congress fails to raise the debt ceiling and the Treasury misses a payment,E031;E105;E042;E106,E105;E014;E038;E031,0.7,1.0,True,1.0
-S10,China invades Taiwan and the US imposes sweeping sanctions,E093;E045;E063,E063;E093;E119;E070,0.673,1.0,True,1.0
-S11,A major cyberattack shuts down US payment systems for three days,E113;E118;E022,E042;E102;E100;E113,0.627,4.0,True,0.25
-S12,The US economy enters a deep recession with unemployment rising to 8%,E013;E075;E018,E090;E037;E097;E115,0.652,,False,0.0
-S13,US approves bitcoin as a legal reserve asset for the Treasury,E110;E086;E116,E110;E019;E086;E024,0.764,1.0,True,1.0
-S14,A ceasefire ends the war in the Middle East and shipping returns to normal,E122;E120,E004;E027;E071;E122,0.598,4.0,True,0.25
-S15,Strong jobs report shows the economy is growing steadily with low inflation,E067;E109;E101,E090;E101;E011;E097,0.677,2.0,True,0.5
-S16,Euro area breaks up as Italy announces it will leave the euro,E021;E023;E049;E036;E055,E048;E033;E039;E023,0.662,4.0,True,0.25
-S17,A major hurricane destroys refineries along the US Gulf Coast,E002;E071,E002;E028;E071;E087,0.795,1.0,True,1.0
-S18,AI boom: big tech reports record profits and raises forecasts,E117,E117;E086;E061;E123,0.669,1.0,True,1.0
-S19,Nothing happens; markets are quiet,,E080;E022;E062;E078,0.675,,,
-S20,Aliens land in Central Park,,E026;E113;E095;E002,0.463,,,
+id,headline,expected,top4,top1_similarity,first_hit_rank,hit_at_3,hit_at_4,reciprocal_rank
+S01,Oil jumps to $150 as a Gulf shipping route closes,E011;E027;E071;E004;E121,E011;E027;E054;E002,0.669,1.0,True,True,1.0
+S02,A large US regional bank collapses after a run on deposits,E102;E104;E103;E007,E102;E104;E022;E014,0.776,1.0,True,True,1.0
+S03,The Federal Reserve unexpectedly raises rates by 1 percentage point,E097;E094;E052;E066,E052;E094;E097;E066,0.804,1.0,True,True,1.0
+S04,The Federal Reserve makes a surprise emergency rate cut of 0.75 points,E009;E076;E078;E015,E009;E008;E017;E015,0.802,1.0,True,True,1.0
+S05,A new pandemic forces lockdowns across Europe and North America,E075;E074;E078;E091,E075;E074;E076;E045,0.722,1.0,True,True,1.0
+S06,The world's largest crypto exchange freezes withdrawals and files for bankruptcy,E100;E044;E056;E096,E123;E044;E118;E100,0.749,2.0,True,True,0.5
+S07,US inflation comes in at 7% far above expectations,E090;E097;E062,E090;E101;E097;E108,0.77,1.0,True,True,1.0
+S08,OPEC agrees a surprise large production increase,E046;E054;E077,E058;E046;E011;E030,0.763,2.0,True,True,0.5
+S09,US Congress fails to raise the debt ceiling and the Treasury misses a payment,E031;E105;E042;E106,E105;E014;E038;E031,0.7,1.0,True,True,1.0
+S10,China invades Taiwan and the US imposes sweeping sanctions,E093;E045;E063,E063;E093;E119;E070,0.673,1.0,True,True,1.0
+S11,A major cyberattack shuts down US payment systems for three days,E113;E118;E022,E042;E102;E100;E113,0.627,4.0,False,True,0.25
+S12,The US economy enters a deep recession with unemployment rising to 8%,E013;E075;E018,E090;E037;E097;E115,0.652,,False,False,0.0
+S13,US approves bitcoin as a legal reserve asset for the Treasury,E110;E086;E116,E110;E019;E086;E024,0.764,1.0,True,True,1.0
+S14,A ceasefire ends the war in the Middle East and shipping returns to normal,E122;E120,E004;E027;E071;E122,0.598,4.0,False,True,0.25
+S15,Strong jobs report shows the economy is growing steadily with low inflation,E067;E109;E101,E090;E101;E011;E097,0.677,2.0,True,True,0.5
+S16,Euro area breaks up as Italy announces it will leave the euro,E021;E023;E049;E036;E055,E048;E033;E039;E023,0.662,4.0,False,True,0.25
+S17,A major hurricane destroys refineries along the US Gulf Coast,E002;E071,E002;E028;E071;E087,0.795,1.0,True,True,1.0
+S18,AI boom: big tech reports record profits and raises forecasts,E117,E117;E086;E061;E123,0.669,1.0,True,True,1.0
+S19,Nothing happens; markets are quiet,,E080;E022;E062;E078,0.675,,,,
+S20,Aliens land in Central Park,,E026;E113;E095;E002,0.463,,,,
+R21,Hackers drain hundreds of millions in coins from a crypto exchange,E044;E056;E118,E118;E056;E123;E044,0.803,1.0,True,True,1.0
+R22,A rating agency cuts a European country's debt to junk as bailout talks stall,E021;E049;E025,E021;E025;E035;E106,0.741,1.0,True,True,1.0
+R23,A central bank surprises markets by ending negative interest rates,E111,E111;E041;E033;E043,0.76,1.0,True,True,1.0
+R24,A missile strike hits a major Gulf oil facility,E071;E121;E112,E071;E122;E002;E121,0.702,1.0,True,True,1.0
+R25,A stablecoin breaks its dollar peg as investors pull billions,E095,E095;E100;E065;E044,0.721,1.0,True,True,1.0
+R26,Pension funds face margin calls as government bond yields soar after a budget,E099,E099;E108;E037;E041,0.694,1.0,True,True,1.0
+R27,"Chinese shares plunge, triggering trading halts",E053;E051;E005,E051;E053;E005;E022,0.746,1.0,True,True,1.0
+R28,The Fed signals rate cuts are coming next year,E109;E067;E115,E109;E115;E094;E017,0.882,1.0,True,True,1.0
+R29,Switzerland's central bank scraps its currency ceiling,E047,E047;E033;E070;E050,0.769,1.0,True,True,1.0
+R30,Bombs hit a European capital's metro during rush hour,E001,E001;E075;E113;E049,0.779,1.0,True,True,1.0
+R31,Oil prices crash as storage tanks run out of space,E080;E077,E080;E054;E029;E077,0.703,1.0,True,True,1.0
+R32,Social media traders force hedge funds to cover big short bets,E085,E085;E110;E022;E062,0.746,1.0,True,True,1.0
+R33,"A family office defaults on margin calls, leaving banks with big losses",E087,E087;E102;E014;E021,0.753,1.0,True,True,1.0
+R34,A global IT outage grounds flights and disrupts banks,E113,E113;E087;E102;E096,0.677,1.0,True,True,1.0
+R35,The European Central Bank announces large-scale government bond purchases,E048;E023;E036,E048;E023;E079;E019,0.864,1.0,True,True,1.0
+R36,The oil cartel agrees to cut production to support prices,E058,E058;E046;E030;E027,0.781,1.0,True,True,1.0

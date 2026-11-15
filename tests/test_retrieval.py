@@ -65,6 +65,8 @@ def test_search_ranks_by_meaning(tmp_path):
     twins = r.search("oil prices jump", k=2)
     assert twins[0].id == "E1" and twins[0].moves["oil"] == 30.0
     assert r.search("crypto exchange halts", k=1)[0].moves["btc"] is None
+    # hidden events never come back, even when they are the best match
+    assert [t.id for t in r.search("oil prices jump", k=3, exclude={"E1"})] in (["E2", "E3"], ["E3", "E2"])
 
 
 def test_stale_index_is_refused(built):

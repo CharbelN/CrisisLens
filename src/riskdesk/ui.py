@@ -9,10 +9,12 @@ from typing import Mapping
 
 import pandas as pd
 
+from riskdesk.checks.moves import HORIZON_DAYS
 from riskdesk.engine.drivers import DRIVERS, DRIVERS_BY_ID, InvalidMovesError
 from riskdesk.engine.holdings import HOLDINGS, HOLDINGS_BY_ID
 from riskdesk.engine.portfolio import InvalidPortfolioError
 from riskdesk.forward import ForwardResult
+from riskdesk.llm.translator import STRONG_MATCH
 
 SAMPLE_PORTFOLIO = {"us_stocks": 25_000, "us_bonds": 10_000, "gold": 5_000, "oil": 0, "bitcoin": 5_000, "cash": 5_000}
 
@@ -81,12 +83,22 @@ def holdings_table(result: ForwardResult) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=cols)
 
 
+def _twin_cell(t, driver_id: str) -> str:
+    """"first day / 20 days", the same two numbers the model sees as evidence."""
+    total = t.moves[driver_id]
+    if total is None:
+        return "n/a"
+    day1 = None if t.day1 is None else t.day1[driver_id]
+    return f"{total:+g}" if day1 is None else f"{day1:+g} / {total:+g}"
+
+
 def twins_table(result: ForwardResult) -> pd.DataFrame:
-    cols = ["Id", "Past event", "Date", "Similarity", "Used by AI"] + [f"{d.label} ({_unit(d)})" for d in DRIVERS]
+    cols = (["Id", "Past event", "Date", "Similarity", "Strong match", "Used by AI"]
+            + [f"{d.label} ({_unit(d)}): first day / {HORIZON_DAYS} days" for d in DRIVERS])
     used = set(result.translation.events_used) if result.translation else set()
     rows = [
-        [t.id, t.name, t.date, t.similarity, "yes" if t.id in used else ""]
-        + ["n/a" if t.moves[d.id] is None else t.moves[d.id] for d in DRIVERS]
+        [t.id, t.name, t.date, t.similarity, "yes" if t.similarity >= STRONG_MATCH else "", "yes" if t.id in used else ""]
+        + [_twin_cell(t, d.id) for d in DRIVERS]
         for t in result.twins
     ]
     return pd.DataFrame(rows, columns=cols)
@@ -131,5 +143,9 @@ def summary_markdown(result: ForwardResult) -> str:
         lines.append(f"**Model's reasoning:** {tr.reasoning}")
         cache_note = "from cache" if tr.latency_s == 0 else f"{tr.latency_s:.1f} s"
         if tr.attempts:
-            lines.append(f"<small>Model {tr.model}, {tr.attempts} attempt(s), {cache_note}.</small>")
+            how = ("2 steps (directions from the headline, then sizes from past events)" if tr.steps == 2
+                   else "1 step")
+            fixes = len(tr.errors)
+            fix_note = "no corrections needed" if not fixes else f"{fixes} answer(s) sent back for correction"
+            lines.append(f"<small>Model {tr.model}, {how}, {fix_note}, {cache_note}.</small>")
     return "\n\n".join(lines)
