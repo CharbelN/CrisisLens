@@ -2,6 +2,7 @@
 
     uv run python scripts/build_demo_cache.py          # run the demo flows, save every answer
     uv run python scripts/build_demo_cache.py --check  # replay with Groq switched off
+    uv run python scripts/build_demo_cache.py --with-gemini  # Groq out: Gemini fills the gaps
 
 Build: runs the demo flows (src/riskdesk/demo.py) with the main model, paced under the free
 tokens-per-minute limit, and saves EVERY answer it receives into cache/demo/, including answers
@@ -19,7 +20,8 @@ import argparse
 import sys
 
 from riskdesk.demo import run_demo_flows
-from riskdesk.llm.client import DEMO_CACHE_DIR, LLMClient, LLMReply, LLMUnavailableError, Messages, PacedClient, save_reply
+from riskdesk.llm.client import (DEMO_CACHE_DIR, GEMINI_LITE, GROQ_MAIN, LLMClient, LLMReply, LLMUnavailableError,
+                                 Messages, PacedClient, save_reply)
 
 
 class Recorder:
@@ -57,9 +59,12 @@ class Offline:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="replay from cache/demo/ only, no network")
+    parser.add_argument("--with-gemini", action="store_true",
+                        help="when Groq is out, ask Gemini for the missing answers (cached answers are reused)")
     args = parser.parse_args()
 
-    client = Offline() if args.check else Recorder(PacedClient())
+    builder = PacedClient(inner=LLMClient([GROQ_MAIN, GEMINI_LITE])) if args.with_gemini else PacedClient()
+    client = Offline() if args.check else Recorder(builder)
     results = run_demo_flows(client)
     for r in results:
         print(f"{'ok  ' if r.ok else 'FAIL'} {r.name}: {r.detail}")

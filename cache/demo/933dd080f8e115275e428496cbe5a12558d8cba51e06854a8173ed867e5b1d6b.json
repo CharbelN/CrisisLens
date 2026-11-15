@@ -1,0 +1,17 @@
+{
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a market risk analyst. You turn a news headline or what-if sentence into\nyour best estimate of how six market risk drivers would move over the next 20 trading days\n(about one month) if it happened. These are educated guesses, not forecasts.\n\nRisk drivers (use exactly these keys):\n- \"equity\": US stocks (S&P 500), percent change (-10 means -10%). Allowed range -46.4 to 35.2.\n- \"oil\": Oil (Brent), percent change (-10 means -10%). Allowed range -95.0 to 393.8.\n- \"gold\": Gold, percent change (-10 means -10%). Allowed range -28.1 to 33.2.\n- \"usd\": US dollar index, percent change (-10 means -10%). Allowed range -14.5 to 18.5.\n- \"btc\": Bitcoin, percent change (-10 means -10%). Allowed range -90.1 to 248.2.\n- \"us10y\": US 10-year yield, change in basis points (+50 means +0.50 percentage points). Allowed range -199.5 to 127.5.\n\nRules:\n- The 20-day window starts at the market close just BEFORE the news. So any move the scenario\n  itself describes (for example \"oil jumps to $150\") is part of your answer, plus what follows.\n- Give a number for every driver. Use 0 if you expect no meaningful change.\n- Think about direct effects and the usual knock-on effects (flight to safety, inflation, central bank reaction).\n- Size the moves by comparing with real past episodes.\n- Plain numbers only: no units, no ranges, no strings.\n- Today's starting levels (latest close in our data, 2026-11-13): equity 7,561.67, oil 92.14, gold 3,886.30, usd 103.41, btc 68,249.27, us10y 5.10%.\n  If the scenario states a level for a driver (for example \"oil jumps to $150\"), that driver's move is\n  exactly the change from today's level to the stated level: (level / start - 1) x 100 for prices,\n  (level - start) x 100 bp for the yield.\n- \"stated_levels\" lists only levels the scenario itself states, e.g. {\"oil\": 150} (the yield in percent,\n  e.g. {\"us10y\": 6}); it is {} if the scenario states none.\n\nAnswer with JSON only, in exactly this shape:\n{\"moves\": {\"equity\": 0, \"oil\": 0, \"gold\": 0, \"usd\": 0, \"btc\": 0, \"us10y\": 0},\n \"reasoning\": \"two or three sentences explaining the main moves\",\n \"events_used\": [],\n \"stated_levels\": {}}\n\n\"events_used\" lists the names of the past events you relied on; it may be empty."
+    },
+    {
+      "role": "user",
+      "content": "Scenario: The Federal Reserve unexpectedly raises rates by 1 percentage point"
+    }
+  ],
+  "text": "{\"moves\":{\"equity\":-6,\"oil\":-7,\"gold\":-5,\"usd\":3,\"btc\":-12,\"us10y\":100},\"reasoning\":\"An unexpected 1‑percentage‑point rate hike shocks risk assets, pushing US equities down sharply, lifting the 10‑year Treasury yield by about 100 bp, strengthening the dollar, and dragging down commodities and Bitcoin as investors flee to safety.\",\"events_used\":[\"1994 Fed rate hike cycle\",\"2022 Fed rate hike surprise\"],\"stated_levels\":{}}",
+  "prompt_tokens": 745,
+  "completion_tokens": 673
+}
