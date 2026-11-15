@@ -92,11 +92,11 @@ def check_translation(
             errors.append(f"{d.id}: must be a plain number, got {value!r}.")
             continue
         lim = limits[d.id]
-        unit = "%" if d.unit == "pct" else " bp"
+        unit = d.suffix
         if not lim.low <= value <= lim.high:
             errors.append(
                 f"{d.id}: {value}{unit} is outside the plausible range "
-                f"{lim.low}{unit} to {lim.high}{unit} for 20 trading days."
+                f"{lim.low}{unit} to {lim.high}{unit} for {HORIZON_DAYS} trading days."
             )
             continue
         moves[d.id] = float(value)

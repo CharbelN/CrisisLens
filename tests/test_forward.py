@@ -5,12 +5,12 @@ import json
 import pandas as pd
 import pytest
 
+from riskdesk import ui
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS
 from riskdesk.engine.portfolio import InvalidPortfolioError
 from riskdesk.forward import run_forward, run_manual
 from riskdesk.llm.client import LLMReply, LLMUnavailableError
-from riskdesk import ui
 
 LIMITS = {d: Limits(-90.0, 500.0) for d in DRIVER_IDS} | {"us10y": Limits(-300.0, 300.0)}
 PORTFOLIO = {"us_stocks": 10_000, "us_bonds": 10_000}

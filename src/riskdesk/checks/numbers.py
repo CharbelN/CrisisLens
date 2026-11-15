@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 # Names that contain digits but are not figures.
 _NAME_PHRASES = re.compile(r"S&P\s*500|10-year|\b10y\b", re.IGNORECASE)
@@ -73,7 +73,6 @@ def matches(written: Written, allowed: float) -> bool:
 class NumberCheck:
     wrong_numbers: list[str]  # written numbers that match no calculated number
     wrong_dates: list[str]
-    n_checked: int
 
     @property
     def ok(self) -> bool:
@@ -85,4 +84,4 @@ def check_numbers(text: str, allowed: Iterable[float], allowed_dates: Iterable[s
     dates = set(allowed_dates) | {d[:4] for d in allowed_dates}  # a date's year is allowed on its own
     numbers, found_dates = extract_numbers(text)
     wrong = [w.text for w in numbers if not any(matches(w, a) for a in values)]
-    return NumberCheck(wrong, [d for d in found_dates if d not in dates], len(numbers) + len(found_dates))
+    return NumberCheck(wrong, [d for d in found_dates if d not in dates])

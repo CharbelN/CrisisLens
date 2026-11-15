@@ -9,7 +9,15 @@ import pytest
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS
 from riskdesk.llm.client import LLMReply
-from riskdesk.llm.translator import STRONG_MATCH, build_messages, fallback_moves, check_directions, direction_lock, translate, typical_moves
+from riskdesk.llm.translator import (
+    STRONG_MATCH,
+    build_messages,
+    check_directions,
+    direction_lock,
+    fallback_moves,
+    translate,
+    typical_moves,
+)
 from riskdesk.retrieval.index import Retriever, StaleIndexError, Twin, build_index, twin_average
 
 WORDS = ["oil", "bank", "fed", "crypto"]

@@ -13,8 +13,8 @@ Stories that fail are sent back once with their problems; a story that fails aga
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Sequence
 
 from riskdesk.checks.levels import numbers_in_text
 from riskdesk.checks.moves import HORIZON_DAYS
@@ -35,7 +35,7 @@ def move_text(d_id: str, v: float | None) -> str:
     d = DRIVERS_BY_ID[d_id]
     if v is None:
         return f"{d.label}: no data"
-    return f"{d.label} {v:+g}{'%' if d.unit == 'pct' else ' bp'}"
+    return f"{d.label} {v:+g}{d.suffix}"
 
 
 def contributions(sc: ReverseScenario) -> dict[str, float]:

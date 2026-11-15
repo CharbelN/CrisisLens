@@ -8,7 +8,12 @@ Run again whenever events.csv or market_data.csv changes.
 from __future__ import annotations
 
 from riskdesk.data.library import (
-    EVENTS_PATH, LIBRARY_PATH, build_library, check_events, file_hash, load_events,
+    EVENTS_PATH,
+    LIBRARY_PATH,
+    build_library,
+    check_events,
+    file_hash,
+    load_events,
 )
 from riskdesk.data.market import load_market_data
 from riskdesk.retrieval.index import INDEX_PATH, FastEmbedder, build_index

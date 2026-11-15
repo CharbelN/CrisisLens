@@ -13,8 +13,9 @@ Every number shown to the user comes from step 2 or 3, never from the model.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping, Protocol
+from typing import Protocol
 
 import pandas as pd
 
@@ -24,7 +25,12 @@ from riskdesk.engine.portfolio import Portfolio, StressResult, apply_moves
 from riskdesk.engine.var import VarResult, historical_var_es
 from riskdesk.llm.client import LLMUnavailableError
 from riskdesk.llm.translator import (
-    FALLBACK_NOTE, STRONG_MATCH, ChatClient, TranslationResult, fallback_moves, translate,
+    FALLBACK_NOTE,
+    STRONG_MATCH,
+    ChatClient,
+    TranslationResult,
+    fallback_moves,
+    translate,
 )
 from riskdesk.retrieval.index import Twin
 

@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from riskdesk.engine.holdings import HOLDINGS_BY_ID, holding_return
-from riskdesk.engine.portfolio import Portfolio, validate_portfolio
+from riskdesk.engine.portfolio import Portfolio, needed_drivers, portfolio_value, validate_portfolio
 
 
 @dataclass(frozen=True)
@@ -45,7 +45,7 @@ def scenario_pnl(portfolio: Portfolio, changes: pd.DataFrame) -> pd.Series:
     (e.g. bitcoin before 2014 when the portfolio holds bitcoin).
     """
     clean = validate_portfolio(portfolio)
-    needed = sorted({d for hid in clean for d in HOLDINGS_BY_ID[hid].drivers_used})
+    needed = needed_drivers(clean)
     usable = changes.dropna(subset=needed) if needed else changes
     pnl = pd.Series(0.0, index=usable.index)
     for hid, amount in clean.items():
@@ -72,7 +72,7 @@ def historical_var_es(
     """`changes` must hold `horizon_days`-day driver moves (see data.market.driver_changes)."""
     pnl = scenario_pnl(portfolio, changes)
     var, es = var_es_from_pnl(pnl, level)
-    start = sum(validate_portfolio(portfolio).values())
+    start = portfolio_value(portfolio)
     return VarResult(
         horizon_days=horizon_days,
         level=level,

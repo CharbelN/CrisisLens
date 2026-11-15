@@ -149,7 +149,7 @@ class LLMClient:
                     completion_tokens=data.get("completion_tokens", 0),
                     latency_s=0.0,
                     cached=True,
-                    provider=data.get("provider", "groq"),  # records from before the switch are Groq's
+                    provider=data.get("provider", "groq"),  # older records have no provider field
                 )
         return None
 

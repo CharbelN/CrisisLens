@@ -35,7 +35,8 @@ def main() -> None:
 
     start = latest_levels(load_market_data())
     scenarios = pd.read_csv(EVAL_DIR / "level_scenarios.csv", dtype=str, keep_default_na=False)
-    limits, client, retriever = default_limits(), pinned_client(GROQ_MAIN, GROQ_SMALL)  # Groq only: the saved results use both, Retriever.load()
+    # Groq only: the saved results use both Groq models
+    limits, client, retriever = default_limits(), pinned_client(GROQ_MAIN, GROQ_SMALL), Retriever.load()
 
     rows = []
     for _, sc in scenarios.iterrows():

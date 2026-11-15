@@ -3,8 +3,8 @@
 import json
 
 import pandas as pd
-import pytest
 
+from riskdesk import ui
 from riskdesk.checks.moves import Limits
 from riskdesk.checks.numbers import check_numbers, extract_numbers
 from riskdesk.engine.drivers import DRIVER_IDS
@@ -12,7 +12,6 @@ from riskdesk.forward import run_forward, run_manual
 from riskdesk.llm.client import LLMReply, LLMUnavailableError
 from riskdesk.llm.memo import BRIEFING_MAX_WORDS, SECTION_KEYS, build_facts, check_memo, write_memo
 from riskdesk.retrieval.index import Twin
-from riskdesk import ui
 
 LIMITS = {d: Limits(-90.0, 500.0) for d in DRIVER_IDS} | {"us10y": Limits(-300.0, 300.0)}
 PORTFOLIO = {"us_stocks": 10_000, "us_bonds": 10_000}

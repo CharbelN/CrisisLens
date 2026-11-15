@@ -20,8 +20,17 @@ import argparse
 import sys
 
 from riskdesk.demo import run_demo_flows
-from riskdesk.llm.client import (DEMO_CACHE_DIR, GEMINI_LITE, GROQ_MAIN, LLMClient, LLMReply, LLMUnavailableError,
-                                 Messages, PacedClient, save_reply)
+from riskdesk.llm.client import (
+    DEMO_CACHE_DIR,
+    GEMINI_LITE,
+    GROQ_MAIN,
+    LLMClient,
+    LLMReply,
+    LLMUnavailableError,
+    Messages,
+    PacedClient,
+    save_reply,
+)
 
 
 class Recorder:

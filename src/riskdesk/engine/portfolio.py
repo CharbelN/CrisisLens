@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from riskdesk.engine.drivers import validate_moves
 from riskdesk.engine.holdings import HOLDINGS_BY_ID, holding_return
@@ -38,6 +38,11 @@ def validate_portfolio(portfolio: Portfolio) -> dict[str, float]:
 
 def portfolio_value(portfolio: Portfolio) -> float:
     return sum(validate_portfolio(portfolio).values())
+
+
+def needed_drivers(portfolio: Portfolio) -> list[str]:
+    """The risk drivers the portfolio's holdings depend on."""
+    return sorted({d for hid in validate_portfolio(portfolio) for d in HOLDINGS_BY_ID[hid].drivers_used})
 
 
 @dataclass(frozen=True)

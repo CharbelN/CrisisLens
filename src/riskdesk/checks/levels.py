@@ -85,9 +85,8 @@ def check_levels(raw, moves: dict[str, float], start: StartLevels, text: str) ->
         target = implied_move(driver, start.levels[driver], float(level))
         if abs(moves[driver] - target) > LEVEL_TOLERANCE[d.unit]:
             fixes[driver] = target
-            unit = "%" if d.unit == "pct" else " bp"
             errors.append(f"{driver}: the scenario states {level:g}, and today's level is {start.levels[driver]:g}, "
-                          f"so the move is {target:+g}{unit}, not {moves[driver]:+g}{unit}.")
+                          f"so the move is {target:+g}{d.suffix}, not {moves[driver]:+g}{d.suffix}.")
     return LevelCheck(errors, fixes, used)
 
 

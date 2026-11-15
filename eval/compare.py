@@ -37,12 +37,14 @@ def summarise(df: pd.DataFrame, refs: dict[str, dict[str, float]]) -> dict[str, 
     dist = [distance(r, refs[r["id"]]) for _, r in ok.iterrows() if r["id"] in refs]
     dist = [x for x in dist if x == x]
     used = df["events_used"].fillna("").astype(str).str.len().gt(0).sum() if "events_used" in df else 0
+    # no answer needed correcting (with RAG there are two steps, so attempts start at 2)
+    first_try = ((done["status"] == "ok") & (done["errors"].isna() | done["errors"].astype(str).eq(""))).sum()
+    hits, scored = ok["dir_hits"].sum(), ok["dir_scored"].sum()
     return {
-        # no answer needed correcting (with RAG there are two steps, so attempts start at 2)
-        "Valid on first try": f"{((done['status'] == 'ok') & (done['errors'].isna() | done['errors'].astype(str).eq(''))).sum()} / {len(done)}",
+        "Valid on first try": f"{first_try} / {len(done)}",
         "Fallback used": str((done["status"] == "fallback").sum()),
         "Failed": str((done["status"] == "failed").sum()),
-        "Direction agreement": f"{ok['dir_hits'].sum() / max(ok['dir_scored'].sum(), 1):.0%} ({ok['dir_hits'].sum()}/{ok['dir_scored'].sum()})",
+        "Direction agreement": f"{hits / max(scored, 1):.0%} ({hits}/{scored})",
         "Distance to history (lower = closer)": f"{sum(dist) / len(dist):.2f} over {len(dist)} scenarios" if dist else "n/a",
         "Scenarios citing past events": str(used),
         "Avg tokens per scenario": f"{done['tokens'].mean():.0f}",

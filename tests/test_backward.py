@@ -6,15 +6,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from riskdesk import ui
 from riskdesk.backward import run_backward
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS
 from riskdesk.engine.reverse import (
-    ReverseError, distances, exposures, most_likely_moves, nearest_event, reverse_stress,
+    ReverseError,
+    distances,
+    exposures,
+    most_likely_moves,
+    nearest_event,
+    reverse_stress,
 )
 from riskdesk.llm.client import LLMReply, LLMUnavailableError
 from riskdesk.llm.stories import check_story, story_facts, write_stories
-from riskdesk import ui
 
 LIMITS = {d: Limits(-90.0, 300.0) for d in DRIVER_IDS} | {"us10y": Limits(-300.0, 300.0)}
 ZERO = pd.Series(0.0, index=list(DRIVER_IDS))
@@ -147,7 +152,7 @@ def test_stories_without_model():
 def test_backward_pipeline_and_screen():
     pf = {"us_stocks": 10_000, "gold": 10_000}
     sc_all = reverse_stress(pf, 10.0, history(), LIMITS).scenarios
-    answer = reply(*[(letter, story_for(sc)) for letter, sc in zip("ABC", sc_all)])
+    answer = reply(*[(letter, story_for(sc)) for letter, sc in zip("ABC", sc_all, strict=False)])
     res = run_backward(pf, 10.0, history(), LIMITS, None, FakeClient(answer))
     assert res.status == "ok" and len(res.stories.stories) == 3
     table = ui.scenarios_table(res)

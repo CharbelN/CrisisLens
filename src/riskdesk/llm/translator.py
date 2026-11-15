@@ -22,8 +22,9 @@ The moves are the model's educated guesses, not forecasts.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from riskdesk.checks.levels import StartLevels, check_levels, numbers_in_text, start_levels_text
 from riskdesk.checks.moves import HORIZON_DAYS, Limits, check_translation
@@ -70,10 +71,6 @@ class TranslationResult:
         return self.moves is not None
 
 
-def _unit_word(d) -> str:
-    return "%" if d.unit == "pct" else " bp"
-
-
 def _driver_lines(limits: dict[str, Limits]) -> str:
     lines = []
     for d in DRIVERS:
@@ -83,9 +80,9 @@ def _driver_lines(limits: dict[str, Limits]) -> str:
     return "\n".join(lines)
 
 
-def _fmt_moves(moves: dict[str, float | None]) -> str:
+def format_moves(moves: dict[str, float | None]) -> str:
     return ", ".join(
-        f"{d.id} {'n/a' if moves[d.id] is None else f'{moves[d.id]:+g}{_unit_word(d)}'}" for d in DRIVERS
+        f"{d.id} {'n/a' if moves[d.id] is None else f'{moves[d.id]:+g}{d.suffix}'}" for d in DRIVERS
     )
 
 
@@ -94,8 +91,8 @@ def format_twin(t: Twin) -> str:
     strength = "strong match" if t.similarity >= STRONG_MATCH else "weak match"
     lines = [f"[{t.id}] {t.name} ({t.date}; similarity {t.similarity:.2f}, {strength})", f"  {t.description}"]
     if t.day1 is not None:
-        lines.append(f"  First-day reaction: {_fmt_moves(t.day1)}")
-    lines.append(f"  Over the next {HORIZON_DAYS} trading days: {_fmt_moves(t.moves)}")
+        lines.append(f"  First-day reaction: {format_moves(t.day1)}")
+    lines.append(f"  Over the next {HORIZON_DAYS} trading days: {format_moves(t.moves)}")
     return "\n".join(lines)
 
 
@@ -113,7 +110,7 @@ def typical_moves(twins: Sequence[Twin]) -> str:
         mid = len(vals) // 2
         med = vals[mid] if len(vals) % 2 else (vals[mid - 1] + vals[mid]) / 2
         up, down = sum(v > 0 for v in vals), sum(v < 0 for v in vals)
-        parts.append(f"{d.id} {med:+.1f}{_unit_word(d)} ({up} up, {down} down)")
+        parts.append(f"{d.id} {med:+.1f}{d.suffix} ({up} up, {down} down)")
     return (f"Typical {HORIZON_DAYS}-trading-day moves after the {len(strong)} strong match(es) "
             f"(median): " + ", ".join(parts))
 
@@ -223,7 +220,7 @@ def direction_lock(moves: dict[str, float]) -> dict[str, str]:
 def _lock_text(lock: dict[str, str]) -> str:
     words = []
     for d in DRIVERS:
-        band = f"{FLAT_BAND[d.unit]:g}{_unit_word(d)}"
+        band = f"{FLAT_BAND[d.unit]:g}{d.suffix}"
         words.append({"+": f"{d.id} up (above +{band})", "-": f"{d.id} down (below -{band})",
                       "0": f"{d.id} flat (within +/-{band})"}[lock[d.id]])
     return ("\n\nDirections already decided from the scenario alone. Keep each move in its range and use the "
@@ -237,7 +234,7 @@ def check_directions(moves: dict[str, float], lock: dict[str, str], skip: set[st
         if d.id in skip:
             continue
         v, want, band = moves[d.id], lock[d.id], FLAT_BAND[d.unit]
-        unit = _unit_word(d)
+        unit = d.suffix
         if want == "+" and v <= band or want == "-" and v >= -band:
             word, bound = ("up", f"above +{band:g}{unit}") if want == "+" else ("down", f"below -{band:g}{unit}")
             errors.append(f"{d.id}: {v:+g}{unit} does not keep the clear {word} move that follows from the scenario; "

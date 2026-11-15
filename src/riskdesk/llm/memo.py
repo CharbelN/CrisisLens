@@ -25,7 +25,7 @@ from riskdesk.engine.drivers import DRIVERS
 from riskdesk.engine.holdings import HOLDINGS_BY_ID
 from riskdesk.forward import VAR_LEVELS, ForwardResult
 from riskdesk.llm.client import LLMUnavailableError
-from riskdesk.llm.translator import ChatClient, _fmt_moves
+from riskdesk.llm.translator import ChatClient, format_moves
 
 MEMO_RETRIES = 1  # the brief: regenerate once, then use the template
 BRIEFING_MAX_WORDS = 80  # about 30 seconds read aloud
@@ -100,7 +100,7 @@ def build_facts(result: ForwardResult, scenario: str) -> Facts:
     for d in DRIVERS:
         v = s.moves[d.id]
         nums.append(v)
-        lines.append(f"- {d.label}: {v:+g}{'%' if d.unit == 'pct' else ' bp'}")
+        lines.append(f"- {d.label}: {v:+g}{d.suffix}")
 
     hist_line = "No historical comparison is available."
     v99 = result.var.get(0.99)
@@ -136,8 +136,8 @@ def build_facts(result: ForwardResult, scenario: str) -> Facts:
             line = f"- [{t.id}] {t.name} ({t.date})"
             if t.day1 is not None:
                 nums += [v for v in t.day1.values() if v is not None]
-                line += f": first day {_fmt_moves(t.day1)};"
-            lines.append(line + f" over {HORIZON_DAYS} trading days {_fmt_moves(t.moves)}")
+                line += f": first day {format_moves(t.day1)};"
+            lines.append(line + f" over {HORIZON_DAYS} trading days {format_moves(t.moves)}")
     else:
         lines.append("Past events relied on: none")
 
@@ -149,7 +149,7 @@ def build_facts(result: ForwardResult, scenario: str) -> Facts:
                      f"({signed_money(worst.pnl)})."),
         "what_happens": (f"Scenario: {scenario or 'moves typed by hand'}. The market moves are "
                          f"{_source(result)}: " + ", ".join(
-                             f"{d.label} {s.moves[d.id]:+g}{'%' if d.unit == 'pct' else ' bp'}" for d in DRIVERS) + "."),
+                             f"{d.label} {s.moves[d.id]:+g}{d.suffix}" for d in DRIVERS) + "."),
         "biggest_hits": "; ".join(f"{HOLDINGS_BY_ID[h.holding_id].label}: {pct(h.return_pct)}, {signed_money(h.pnl)}"
                                   for h in ranked) + ".",
         "history": hist_line,

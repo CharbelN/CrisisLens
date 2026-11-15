@@ -28,16 +28,15 @@ the crisis library whose real moves were closest (same distance).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping
 
 import numpy as np
 import pandas as pd
 
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS, DRIVERS_BY_ID
-from riskdesk.engine.holdings import HOLDINGS_BY_ID
-from riskdesk.engine.portfolio import Portfolio, StressResult, apply_moves, validate_portfolio
+from riskdesk.engine.portfolio import Portfolio, StressResult, apply_moves, needed_drivers
 
 N_SCALED = 2  # scaled real months shown next to the most likely scenario
 MIN_GAP_DAYS = 180  # scaled months must be at least this far apart (different episodes)
@@ -71,10 +70,6 @@ class ReverseScenario:
     scale: float | None = None  # scaled month: how much the real moves were multiplied by
     match: Match | None = None
 
-    @property
-    def engine_moves(self) -> dict[str, float]:
-        return {d: 0.0 if v is None else v for d, v in self.moves.items()}
-
 
 @dataclass
 class ReverseResult:
@@ -104,7 +99,7 @@ def distances(rows: pd.DataFrame, mu: pd.Series, cov: pd.DataFrame) -> pd.Series
     out = pd.Series(np.nan, index=rows.index)
     pattern = rows.notna()
     for key, idx in pattern.groupby(list(pattern.columns)).groups.items():
-        cols = [d for d, has in zip(pattern.columns, key) if has]
+        cols = [d for d, has in zip(pattern.columns, key, strict=True) if has]
         if not cols:
             continue
         x = rows.loc[idx, cols].to_numpy() - mu[cols].to_numpy()
@@ -147,10 +142,6 @@ def _outside(moves: Mapping[str, float | None], limits: dict[str, Limits]) -> li
 def main_driver(a: pd.Series, moves: Mapping[str, float | None]) -> str:
     loss = {d: -a[d] * (moves[d] or 0.0) for d in DRIVER_IDS}
     return max(loss, key=loss.get)
-
-
-def needed_drivers(portfolio: Portfolio) -> list[str]:
-    return sorted({d for hid in validate_portfolio(portfolio) for d in HOLDINGS_BY_ID[hid].drivers_used})
 
 
 def nearest_event(moves: Mapping[str, float | None], library: pd.DataFrame, cov: pd.DataFrame,
@@ -203,7 +194,7 @@ def most_likely_moves(a: pd.Series, mu: pd.Series, cov: pd.DataFrame, target: fl
         s = cov_ff @ a_f
         if abs(float(a_f @ s)) < 1e-12:
             break  # the free drivers cannot change the loss any more
-        m = dict(zip(free, mu_f + s * (t - float(a_f @ mu_f)) / float(a_f @ s))) | held
+        m = dict(zip(free, mu_f + s * (t - float(a_f @ mu_f)) / float(a_f @ s), strict=True)) | held
         broken = {d: _inside(limits[d], DRIVERS_BY_ID[d].unit) for d in free
                   if not limits[d].low <= round(m[d], 1) <= limits[d].high}
         if not broken:

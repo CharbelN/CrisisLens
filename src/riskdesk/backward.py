@@ -17,7 +17,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from riskdesk.checks.moves import Limits
-from riskdesk.engine.portfolio import Portfolio, validate_portfolio
+from riskdesk.engine.portfolio import Portfolio, portfolio_value
 from riskdesk.engine.reverse import ReverseError, ReverseResult, reverse_stress
 from riskdesk.llm.stories import StoriesResult, write_stories
 from riskdesk.llm.translator import ChatClient
@@ -38,7 +38,7 @@ def run_backward(
 ) -> BackwardResult:
     """Never raises for an AI problem; a bad portfolio or target gives status "error"."""
     try:
-        start = sum(validate_portfolio(portfolio).values())
+        start = portfolio_value(portfolio)
         rev = reverse_stress(portfolio, target_pct, changes, limits, library)
     except ReverseError as exc:
         return BackwardResult("error", str(exc), None, None)

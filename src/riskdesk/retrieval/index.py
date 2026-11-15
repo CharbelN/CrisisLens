@@ -100,7 +100,7 @@ class Retriever:
         index_path: Path = INDEX_PATH,
         events_path: Path = EVENTS_PATH,
         library: pd.DataFrame | None = None,
-    ) -> "Retriever":
+    ) -> Retriever:
         embedder = embedder or FastEmbedder()
         data = np.load(index_path)
         if str(data["model"]) != embedder.name:

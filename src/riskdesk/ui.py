@@ -5,19 +5,19 @@ plus the text shown on screen. Kept apart from app.py so they can be tested.
 from __future__ import annotations
 
 import math
-from typing import Mapping
+from collections.abc import Mapping
 
 import pandas as pd
 
+from riskdesk.backward import BackwardResult
 from riskdesk.checks.moves import HORIZON_DAYS
 from riskdesk.engine.drivers import DRIVERS, DRIVERS_BY_ID, InvalidMovesError
 from riskdesk.engine.holdings import HOLDINGS, HOLDINGS_BY_ID
 from riskdesk.engine.portfolio import InvalidPortfolioError
-from riskdesk.backward import BackwardResult
 from riskdesk.engine.reverse import ReverseScenario
 from riskdesk.forward import ForwardResult
-from riskdesk.llm.stories import LETTERS
 from riskdesk.llm.memo import SECTIONS, Memo
+from riskdesk.llm.stories import LETTERS
 from riskdesk.llm.translator import STRONG_MATCH
 
 SAMPLE_PORTFOLIO = {"us_stocks": 25_000, "us_bonds": 10_000, "gold": 5_000, "oil": 0, "bitcoin": 5_000, "cash": 5_000}
@@ -56,13 +56,9 @@ def parse_portfolio(df: pd.DataFrame) -> dict[str, float]:
 
 
 # --- moves -----------------------------------------------------------------
-def _unit(d) -> str:
-    return "%" if d.unit == "pct" else "bp"
-
-
 def moves_table(moves: Mapping[str, float] | None = None) -> pd.DataFrame:
     moves = moves or {}
-    return pd.DataFrame([[d.label, float(moves.get(d.id, 0.0)), _unit(d)] for d in DRIVERS], columns=MOVES_COLS)
+    return pd.DataFrame([[d.label, float(moves.get(d.id, 0.0)), d.symbol] for d in DRIVERS], columns=MOVES_COLS)
 
 
 def parse_moves(df: pd.DataFrame) -> dict[str, float]:
@@ -98,7 +94,7 @@ def _twin_cell(t, driver_id: str) -> str:
 
 def twins_table(result: ForwardResult) -> pd.DataFrame:
     cols = (["Id", "Past event", "Date", "Similarity", "Strong match", "Used by AI"]
-            + [f"{d.label} ({_unit(d)}): first day / {HORIZON_DAYS} days" for d in DRIVERS])
+            + [f"{d.label} ({d.symbol}): first day / {HORIZON_DAYS} days" for d in DRIVERS])
     used = set(result.translation.events_used) if result.translation else set()
     rows = [
         [t.id, t.name, t.date, t.similarity, "yes" if t.similarity >= STRONG_MATCH else "", "yes" if t.id in used else ""]
@@ -121,11 +117,11 @@ def how_found(sc: ReverseScenario) -> str:
 
 def scenarios_table(result: BackwardResult) -> pd.DataFrame:
     cols = (["Scenario", "How it was found", "Loss (USD)", "Loss (%)", "More unusual than (% of past months)",
-             "Closest past event"] + [f"{d.label} ({_unit(d)})" for d in DRIVERS])
+             "Closest past event"] + [f"{d.label} ({d.symbol})" for d in DRIVERS])
     if result.reverse is None:
         return pd.DataFrame(columns=cols)
     rows = []
-    for letter, sc in zip(LETTERS, result.reverse.scenarios):
+    for letter, sc in zip(LETTERS, result.reverse.scenarios, strict=False):
         match = f"{sc.match.name} ({sc.match.date})" if sc.match else ""
         rows.append([letter, how_found(sc), round(-sc.stress.pnl, 2), round(-sc.stress.pnl_pct, 2),
                      round(sc.rarer_than * 100, 1), match]
@@ -148,7 +144,7 @@ def backward_markdown(result: BackwardResult) -> str:
     lines += [f"<small>{n}</small>" for n in rev.notes]
     st = result.stories
     if st is not None:
-        for letter, sc in zip(LETTERS, rev.scenarios):
+        for letter in LETTERS[:len(rev.scenarios)]:
             story = st.stories.get(letter)
             if story is None:
                 lines.append(f"**{letter}.** *(no story: {'it failed the check twice' if letter in st.dropped else 'not written'})*")
@@ -202,7 +198,7 @@ def summary_markdown(result: ForwardResult) -> str:
         for d_id, level in tr.stated_levels.items():
             d = DRIVERS_BY_ID[d_id]
             how = "set by code (the model's move did not match)" if d_id in tr.level_fixes else "checked by code"
-            parts.append(f"{d.label}: stated level {level:g} → move {tr.moves[d_id]:+g} {_unit(d)}, {how}")
+            parts.append(f"{d.label}: stated level {level:g} → move {tr.moves[d_id]:+g} {d.symbol}, {how}")
         lines.append("**Levels stated in the scenario** (moves from the latest close in the data): " + "; ".join(parts))
     if tr is not None and tr.reasoning:
         lines.append(f"**Model's reasoning:** {tr.reasoning}")

@@ -3,7 +3,7 @@
 Reads API keys and switches from environment variables, which are loaded
 from a local `.env` file if one exists. The `.env` file is never committed.
 
-- GROQ_API_KEY   : main language-model engine (needed from build stage 3).
+- GROQ_API_KEY   : main language-model engine.
 - GEMINI_API_KEY : optional backup engine. Missing is fine, never an error.
 - RISKDESK_SHARE : "true" to create a temporary public Gradio link. Off by default.
 """

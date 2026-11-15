@@ -25,3 +25,10 @@ testpaths = ["tests"]
 dev = [
     "pytest>=9.2.0",
 ]
+
+[tool.ruff]
+line-length = 140
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]

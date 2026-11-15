@@ -14,18 +14,26 @@ import pandas as pd
 
 from riskdesk.backward import BackwardResult, run_backward
 from riskdesk.checks.levels import latest_levels
-from riskdesk.data.library import load_library
-from riskdesk.engine.reverse import MAX_TARGET_PCT
 from riskdesk.checks.moves import HORIZON_DAYS, plausible_limits
 from riskdesk.config import load_settings
+from riskdesk.data.library import load_library
 from riskdesk.data.market import driver_changes, load_market_data
-from riskdesk.forward import ForwardResult, run_forward, run_manual
 from riskdesk.demo import DEMO_TARGETS, sample_headlines
+from riskdesk.engine.reverse import MAX_TARGET_PCT
+from riskdesk.forward import ForwardResult, run_forward, run_manual
 from riskdesk.llm.client import DEMO_CACHE_DIR, default_client
 from riskdesk.llm.memo import write_memo
 from riskdesk.retrieval.index import Retriever, StaleIndexError
 from riskdesk.ui import (
-    backward_markdown, holdings_table, memo_markdown, moves_table, scenarios_table, parse_moves, parse_portfolio, portfolio_table, summary_markdown,
+    backward_markdown,
+    holdings_table,
+    memo_markdown,
+    moves_table,
+    parse_moves,
+    parse_portfolio,
+    portfolio_table,
+    scenarios_table,
+    summary_markdown,
     twins_table,
 )
 
@@ -117,7 +125,7 @@ def build_app() -> gr.Blocks:
                 interactive=False,
             )
 
-            for btn, text in zip(sample_buttons, samples):
+            for btn, text in zip(sample_buttons, samples, strict=True):
                 btn.click(lambda t=text: t, outputs=headline)
             run_out = [summary, moves, per_holding, memo, twins]
             run.click(on_run, inputs=[portfolio, headline, plant], outputs=run_out)

@@ -11,8 +11,9 @@ Drivers left out are treated as "no change" (0).
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, Mapping
+from typing import Literal
 
 Unit = Literal["pct", "bp"]
 
@@ -23,6 +24,16 @@ class Driver:
     label: str
     unit: Unit
     source: str
+
+    @property
+    def symbol(self) -> str:
+        """Unit label for tables: "%" or "bp"."""
+        return "%" if self.unit == "pct" else "bp"
+
+    @property
+    def suffix(self) -> str:
+        """Unit as written after a number in text: "-10%" or "+50 bp"."""
+        return "%" if self.unit == "pct" else " bp"
 
 
 DRIVERS: tuple[Driver, ...] = (
@@ -38,7 +49,7 @@ DRIVER_IDS: tuple[str, ...] = tuple(d.id for d in DRIVERS)
 DRIVERS_BY_ID: dict[str, Driver] = {d.id: d for d in DRIVERS}
 
 # Hard limits: moves outside these are impossible or absurd, not just extreme.
-# (Stage 3 adds tighter "plausible" limits for the language model's guesses.)
+# The tighter "plausible" limits for the model's guesses are in checks/moves.py.
 MIN_PRICE_MOVE_PCT = -100.0  # a price cannot fall more than 100%
 MAX_PRICE_MOVE_PCT = 1000.0
 MAX_ABS_RATE_MOVE_BP = 2000.0  # 20 percentage points
