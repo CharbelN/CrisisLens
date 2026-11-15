@@ -6,6 +6,10 @@ Window rule (the same for every event):
 - end   = 20 trading days after the start.
 Moves are in engine units: percent for prices, basis points for the yield.
 A driver with no data at the start (bitcoin before Sept 2014) is left empty (n/a).
+
+The library also stores the FIRST-DAY reaction (start -> next trading day) in
+columns "d1_<driver>". It is the cleanest read of the shock itself: the 20-day
+window also holds unrelated later news (data releases, policy moves, reversals).
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ from riskdesk.engine.drivers import DRIVERS
 EVENTS_PATH = PROJECT_ROOT / "data" / "events.csv"
 LIBRARY_PATH = PROJECT_ROOT / "data" / "crisis_library.csv"
 RISK_TYPES = ("market", "credit", "operational", "liquidity")
+DAY1_PREFIX = "d1_"
 EVENT_COLS = ["id", "name", "date", "description", "risk_type", "region", "checked"]
 
 
@@ -76,6 +81,7 @@ def build_library(events: pd.DataFrame, levels: pd.DataFrame) -> pd.DataFrame:
                 "description": ev["description"], "risk_type": ev["risk_type"], "region": ev["region"],
                 "checked": ev["checked"], "window_start": start.date().isoformat(),
                 "window_end": end.date().isoformat(), **event_moves(levels, ev["date"]),
+                **{DAY1_PREFIX + k: v for k, v in event_moves(levels, ev["date"], horizon=1).items()},
             }
         )
     return pd.DataFrame(rows)

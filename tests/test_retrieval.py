@@ -9,7 +9,7 @@ import pytest
 from riskdesk.checks.moves import Limits
 from riskdesk.engine.drivers import DRIVER_IDS
 from riskdesk.llm.client import LLMReply
-from riskdesk.llm.translator import STRONG_MATCH, build_messages, translate
+from riskdesk.llm.translator import STRONG_MATCH, build_messages, check_directions, direction_lock, translate, typical_moves
 from riskdesk.retrieval.index import Retriever, StaleIndexError, Twin, build_index, twin_average
 
 WORDS = ["oil", "bank", "fed", "crypto"]
@@ -104,8 +104,9 @@ class FakeClient:
         return LLMReply(self.answers.pop(0), "fake", 1, 1, 0.0, False)
 
 
-def answer(events):
-    return json.dumps({"moves": {d: 0 for d in DRIVER_IDS} | {"oil": 25}, "reasoning": "r", "events_used": events})
+def answer(events, **moves):
+    moves = {d: 0 for d in DRIVER_IDS} | {"oil": 25} | moves
+    return json.dumps({"moves": moves, "reasoning": "r", "events_used": events})
 
 
 def test_prompt_contains_evidence():
@@ -113,26 +114,65 @@ def test_prompt_contains_evidence():
     assert "[E011]" in msg and "oil +12.5%" in msg and "strong match" in msg
 
 
+def test_prompt_shows_first_day_and_typical_moves():
+    t = Twin("E011", "Oil peak", "2008-07-11", "d", "market", 0.7, {d: 0.0 for d in DRIVER_IDS} | {"oil": -14.0},
+             {d: 0.0 for d in DRIVER_IDS} | {"oil": 5.8})
+    msg = build_messages("Oil up", LIMITS, [t])[0]["content"]
+    assert "First-day reaction: equity +0%, oil +5.8%" in msg and "oil -14%" in msg
+
+
+def test_typical_moves_median_by_hand():
+    # strong twins only: oil 10, 30, -5 -> median 10, 2 up 1 down; the weak twin (-90) is ignored
+    twins = [twin("A", 0.9, oil=10), twin("B", 0.8, oil=30), twin("C", 0.7, oil=-5), twin("D", 0.3, oil=-90)]
+    line = typical_moves(twins)
+    assert "3 strong match(es)" in line and "oil +10.0% (2 up, 1 down)" in line
+    assert "No strong match" in typical_moves([twin("D", 0.3, oil=-90)])
+
+
+def test_direction_lock_by_hand():
+    # band: 2% for prices, 15 bp for the yield
+    lock = direction_lock({d: 0.0 for d in DRIVER_IDS} | {"oil": 25, "equity": -1.9, "us10y": -16})
+    assert lock["oil"] == "+" and lock["equity"] == "0" and lock["us10y"] == "-"
+    ok = {d: 0.0 for d in DRIVER_IDS} | {"oil": 3, "equity": 1.5, "us10y": -40}
+    assert check_directions(ok, lock) == []
+    bad = ok | {"oil": 1.0, "equity": 5.0, "us10y": 10}
+    errs = check_directions(bad, lock)
+    assert len(errs) == 3 and errs[0].startswith("equity") and "clear up move" in errs[1]
+
+
 def test_cited_event_must_be_one_that_was_retrieved():
     twins = [twin("E011", 0.7, oil=10)]
-    res = translate("Oil up", FakeClient([answer(["E999"]), answer(["E011"])]), LIMITS, twins)
-    assert res.ok and res.attempts == 2 and res.events_used == ["E011"]
+    # step 1 (no evidence) + step 2 twice: first cites an unknown id, second is fine
+    res = translate("Oil up", FakeClient([answer([]), answer(["E999"]), answer(["E011"])]), LIMITS, twins)
+    assert res.ok and res.attempts == 3 and res.events_used == ["E011"]
     assert "not given as evidence" in res.errors[0][0]
+
+
+def test_evidence_cannot_flip_a_direction():
+    twins = [twin("E011", 0.7, oil=-14)]
+    # step 1 says oil +25; the evidence-based answer says -10 (rejected), then +12 (kept)
+    client = FakeClient([answer([]), answer(["E011"], oil=-10), answer(["E011"], oil=12)])
+    res = translate("Oil up", client, LIMITS, twins)
+    assert res.ok and res.moves["oil"] == 12 and "oil" in res.errors[0][0]
+    # step 2 keeps flipping -> the answer without evidence is used
+    client = FakeClient([answer([])] + [answer(["E011"], oil=-10)] * 3)
+    res = translate("Oil up", client, LIMITS, twins)
+    assert res.ok and res.moves["oil"] == 25 and res.reasoning.startswith("Answer without past-event evidence")
 
 
 def test_fallback_uses_strong_twins_only():
     twins = [twin("A", 0.8, oil=30), twin("B", STRONG_MATCH - 0.1, oil=-50)]
-    res = translate("Oil up", FakeClient(["bad"] * 3), LIMITS, twins)
+    res = translate("Oil up", FakeClient(["bad"] * 6), LIMITS, twins)
     assert res.status == "fallback" and res.moves["oil"] == pytest.approx(30.0)
     assert res.events_used == ["A"]
 
 
 def test_no_fallback_without_strong_twins():
-    res = translate("Aliens", FakeClient(["bad"] * 3), LIMITS, [twin("A", 0.4, oil=30)])
+    res = translate("Aliens", FakeClient(["bad"] * 6), LIMITS, [twin("A", 0.4, oil=30)])
     assert res.status == "failed" and res.moves is None
 
 
 def test_fallback_is_clipped_to_limits():
     tight = LIMITS | {"oil": Limits(-20.0, 20.0)}
-    res = translate("Oil up", FakeClient(["bad"] * 3), tight, [twin("A", 0.9, oil=60)])
+    res = translate("Oil up", FakeClient(["bad"] * 6), tight, [twin("A", 0.9, oil=60)])
     assert res.moves["oil"] == 20.0

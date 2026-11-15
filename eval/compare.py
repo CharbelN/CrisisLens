@@ -38,7 +38,8 @@ def summarise(df: pd.DataFrame, refs: dict[str, dict[str, float]]) -> dict[str, 
     dist = [x for x in dist if x == x]
     used = df["events_used"].fillna("").astype(str).str.len().gt(0).sum() if "events_used" in df else 0
     return {
-        "Valid on first try": f"{((done['status'] == 'ok') & (done['attempts'] == 1)).sum()} / {len(done)}",
+        # no answer needed correcting (with RAG there are two steps, so attempts start at 2)
+        "Valid on first try": f"{((done['status'] == 'ok') & (done['errors'].isna() | done['errors'].astype(str).eq(''))).sum()} / {len(done)}",
         "Fallback used": str((done["status"] == "fallback").sum()),
         "Failed": str((done["status"] == "failed").sum()),
         "Direction agreement": f"{ok['dir_hits'].sum() / max(ok['dir_scored'].sum(), 1):.0%} ({ok['dir_hits'].sum()}/{ok['dir_scored'].sum()})",

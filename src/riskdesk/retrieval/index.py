@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from riskdesk.config import PROJECT_ROOT
-from riskdesk.data.library import EVENTS_PATH, file_hash, load_library
+from riskdesk.data.library import DAY1_PREFIX, EVENTS_PATH, file_hash, load_library
 from riskdesk.engine.drivers import DRIVER_IDS
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -82,6 +82,7 @@ class Twin:
     risk_type: str
     similarity: float
     moves: dict[str, float | None]  # real 20-day moves; None = no data
+    day1: dict[str, float | None] | None = None  # real first-day reaction; None = not in the library
 
 
 class Retriever:
@@ -116,10 +117,15 @@ class Retriever:
         out = []
         for i in order:
             row = self.library.iloc[int(i)]
-            moves = {d: (None if pd.isna(row[d]) else float(row[d])) for d in DRIVER_IDS}
+            moves = {d: _num(row[d]) for d in DRIVER_IDS}
+            day1 = {d: _num(row[DAY1_PREFIX + d]) for d in DRIVER_IDS} if DAY1_PREFIX + DRIVER_IDS[0] in row else None
             out.append(Twin(str(row["id"]), row["name"], str(row["date"]), row["description"],
-                            row["risk_type"], round(float(scores[i]), 3), moves))
+                            row["risk_type"], round(float(scores[i]), 3), moves, day1))
         return out
+
+
+def _num(v) -> float | None:
+    return None if pd.isna(v) else float(v)
 
 
 def twin_average(twins: list[Twin]) -> dict[str, float]:

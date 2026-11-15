@@ -1,7 +1,10 @@
-"""Run the scenario translator on eval/scenarios.csv: the "before RAG" baseline.
+"""Run the scenario translator on eval/scenarios.csv, before or with RAG.
 
 Usage:  uv run python eval/run_translator.py          (before RAG: no evidence)
         uv run python eval/run_translator.py --rag    (with historical twins as evidence)
+
+With --rag the translator works in two steps (see llm/translator.py): an answer without
+evidence fixes the directions, then the evidence sizes the moves. So "attempts" is at least 2.
 
 Expected directions in scenarios.csv: "+" up, "-" down, "0" roughly flat, "?" not scored.
 "Roughly flat" means within 2% for prices and within 15 bp for the yield.
@@ -85,7 +88,8 @@ def main() -> None:
     print("\n=== Summary ===")
     print(f"Scenarios run:          {len(done)} / {len(out)}")
     if len(done):
-        print(f"Valid on first try:     {(done['attempts'] == 1).mul(done['status'] == 'ok').sum()} / {len(done)}")
+        first = (done["status"] == "ok") & (done["errors"].isna() | done["errors"].astype(str).eq(""))  # no answer needed correcting
+        print(f"Valid on first try:     {first.sum()} / {len(done)}")
         print(f"Valid after retries:    {len(ok)} / {len(done)}")
         print(f"Fallback used:          {(done['status'] == 'fallback').sum()}")
         print(f"Failed:                 {(done['status'] == 'failed').sum()}")
