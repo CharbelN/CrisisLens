@@ -20,9 +20,9 @@ S18,AI boom: big tech reports record profits and raises forecasts,E117,E117;E086
 S19,Nothing happens; markets are quiet,,E080;E022;E062;E078,0.675,,,,
 S20,Aliens land in Central Park,,E026;E113;E095;E002,0.463,,,,
 R21,Hackers drain hundreds of millions in coins from a crypto exchange,E044;E056;E118,E118;E056;E123;E044,0.803,1.0,True,True,1.0
-R22,A rating agency cuts a European country's debt to junk as bailout talks stall,E021;E049;E025,E021;E025;E035;E106,0.741,1.0,True,True,1.0
+R22,A rating agency cuts a European country's debt to junk as bailout talks stall,E021;E049,E021;E025;E035;E106,0.741,1.0,True,True,1.0
 R23,A central bank surprises markets by ending negative interest rates,E111,E111;E041;E033;E043,0.76,1.0,True,True,1.0
-R24,A missile strike hits a major Gulf oil facility,E071;E121;E112,E071;E122;E002;E121,0.702,1.0,True,True,1.0
+R24,A missile strike hits a major Gulf oil facility,E071,E071;E122;E002;E121,0.702,1.0,True,True,1.0
 R25,A stablecoin breaks its dollar peg as investors pull billions,E095,E095;E100;E065;E044,0.721,1.0,True,True,1.0
 R26,Pension funds face margin calls as government bond yields soar after a budget,E099,E099;E108;E037;E041,0.694,1.0,True,True,1.0
 R27,"Chinese shares plunge, triggering trading halts",E053;E051;E005,E051;E053;E005;E022,0.746,1.0,True,True,1.0
